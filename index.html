@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Cyclelife</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="game-panel" aria-label="Cyclelife game">
+        <canvas id="game" width="960" height="540"></canvas>
+        <div class="hud" aria-live="polite">
+          <span id="status">Checkpoint: Start</span>
+          <span id="timer">00:00</span>
+          <span id="deaths">Deaths: 0</span>
+        </div>
+        <div class="touch-controls" aria-label="Touch controls">
+          <button id="left" type="button" aria-label="Move left">Left</button>
+          <button id="right" type="button" aria-label="Move right">Right</button>
+          <button id="jump" type="button" aria-label="Jump">Jump</button>
+          <button id="run" type="button" aria-label="Run">Run</button>
+        </div>
+      </section>
+    </main>
+    <script src="game.js"></script>
+  </body>
+</html>

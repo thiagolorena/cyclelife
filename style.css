@@ -1,0 +1,99 @@
+:root {
+  color-scheme: dark;
+  --ink: #e7edf2;
+  --muted: #8ea2b1;
+  --panel: #121820;
+  --steel: #253342;
+  --acid: #a6ff3d;
+  --danger: #ff3864;
+  --gold: #ffd166;
+  --sky: #2e6f95;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  display: grid;
+  place-items: center;
+  min-height: 100%;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(9, 17, 24, 0.92), rgba(3, 6, 10, 0.96)),
+    repeating-linear-gradient(90deg, #101820 0 2px, #0b1118 2px 4px);
+  color: var(--ink);
+  font-family: "Courier New", monospace;
+}
+
+.shell {
+  width: min(100vw, 1120px);
+  padding: 18px;
+}
+
+.game-panel {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  max-height: calc(100vh - 36px);
+  border: 4px solid #384a59;
+  background: #05080c;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.5);
+  image-rendering: pixelated;
+}
+
+canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+
+.hud {
+  position: absolute;
+  inset: 12px 12px auto 12px;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  pointer-events: none;
+  color: var(--ink);
+  font-size: clamp(12px, 1.7vw, 16px);
+  text-shadow: 2px 2px 0 #05080c;
+}
+
+.touch-controls {
+  position: absolute;
+  inset: auto 14px 14px 14px;
+  display: none;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.touch-controls button {
+  min-height: 44px;
+  border: 2px solid #4e6375;
+  background: rgba(18, 24, 32, 0.82);
+  color: var(--ink);
+  font: 700 13px/1 "Courier New", monospace;
+  text-transform: uppercase;
+}
+
+@media (pointer: coarse), (max-width: 720px) {
+  body {
+    overflow: auto;
+  }
+
+  .shell {
+    padding: 8px;
+  }
+
+  .touch-controls {
+    display: grid;
+  }
+}
