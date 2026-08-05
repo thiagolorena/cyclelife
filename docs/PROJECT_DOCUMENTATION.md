@@ -42,6 +42,17 @@ Arquivos principais:
 - `README.md`: resumo publico do projeto.
 - `docs/PROJECT_DOCUMENTATION.md`: documentacao completa e parametro de trabalho.
 
+## Loop e velocidade
+
+O jogo usa `requestAnimationFrame`, mas a fisica e os movimentos principais sao normalizados por tempo.
+
+Comportamento atual:
+
+- A referencia de gameplay e 60 FPS (`FRAME_MS = 1000 / 60`).
+- Movimento do jogador, gravidade, aceleracao, atrito, nuvens-armadilha, pontes falsas e bomba usam `step = dt / FRAME_MS`.
+- Isso evita que navegadores ou monitores em 120 Hz/144 Hz acelerem o jogo.
+- Temporizadores como espinhos ciclicos, contagem da bomba e tempo final continuam baseados em milissegundos reais.
+
 ## Menu do jogo
 
 O jogo abre em um menu animado renderizado no canvas.
@@ -281,7 +292,8 @@ Como o projeto e estatico, "build" significa:
 - `1ff09d2`: menu animado, controle de volume, tres fases, espinhos somente nos buracos e bomba gigante na fase 3.
 - `1de13b0`: remocao da armadilha escondida na plataforma verde da fase 1 para preservar uma janela justa entre espinhos.
 - `d166137`: nomes publicos das fases sem subtitulo revelador, pause com ESC e dica flutuante inicial.
-- Versao atual: bomba final permanece visivel/indicada depois de ativada e tela final mostra mortes e tempo total.
+- `ae628d1`: bomba final permanece visivel/indicada depois de ativada e tela final mostra mortes e tempo total.
+- Versao atual: normalizacao da fisica por tempo para manter a mesma velocidade em navegadores/monitores com FPS diferente.
 
 ## Proximos caminhos sugeridos
 

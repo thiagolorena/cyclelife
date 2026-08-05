@@ -9,6 +9,7 @@ ctx.imageSmoothingEnabled = false;
 
 const W = canvas.width;
 const H = canvas.height;
+const FRAME_MS = 1000 / 60;
 const GRAVITY = 0.72;
 const keys = new Set();
 const touch = new Set();
@@ -352,6 +353,8 @@ function completeLevel() {
 }
 
 function update(dt, now) {
+  const step = dt / FRAME_MS;
+
   if (state.mode === "menu" || state.mode === "closed") {
     updateMenuInput();
     return;
@@ -372,13 +375,13 @@ function update(dt, now) {
   const speed = run ? 5.2 : 3.25;
 
   if (left) {
-    player.vx = Math.max(player.vx - 0.9, -speed);
+    player.vx = Math.max(player.vx - 0.9 * step, -speed);
     player.facing = -1;
   } else if (right) {
-    player.vx = Math.min(player.vx + 0.9, speed);
+    player.vx = Math.min(player.vx + 0.9 * step, speed);
     player.facing = 1;
   } else {
-    player.vx *= 0.76;
+    player.vx *= Math.pow(0.76, step);
     if (Math.abs(player.vx) < 0.04) player.vx = 0;
   }
 
@@ -388,9 +391,9 @@ function update(dt, now) {
     playTone(310, 0.04);
   }
 
-  player.vy = Math.min(player.vy + GRAVITY, 15);
-  move(player.vx, 0);
-  move(0, player.vy);
+  player.vy = Math.min(player.vy + GRAVITY * step, 15);
+  move(player.vx * step, 0);
+  move(0, player.vy * step);
 
   for (const cp of state.level.checkpoints) {
     if (!overlaps(player, cp)) continue;
@@ -405,9 +408,9 @@ function update(dt, now) {
     statusEl.textContent = `${state.level.name} - Checkpoint: ${cp.label}`;
   }
 
-  for (const trap of state.level.traps) updateTrap(trap, now);
+  for (const trap of state.level.traps) updateTrap(trap, now, step);
   for (const hazard of state.level.hazards) updateHazard(hazard, now);
-  if (state.level.bomb) updateBomb(state.level.bomb, now);
+  if (state.level.bomb) updateBomb(state.level.bomb, now, step);
 
   for (const hazard of state.level.hazards) {
     if (hazard.type === "spikes" && hazard.h <= 4) continue;
@@ -423,7 +426,7 @@ function update(dt, now) {
   state.cameraX = clamp(player.x - W * 0.38, 0, state.level.width - W);
   state.shake = Math.max(0, state.shake - dt * 0.05);
   state.flash = Math.max(0, state.flash - dt * 0.08);
-  player.frame += Math.abs(player.vx) * 0.08 + (player.grounded ? 0 : 0.04);
+  player.frame += (Math.abs(player.vx) * 0.08 + (player.grounded ? 0 : 0.04)) * step;
 }
 
 function updateMenuInput() {
@@ -451,7 +454,7 @@ function updatePauseInput() {
   playTone(140, 0.08);
 }
 
-function updateTrap(trap, now) {
+function updateTrap(trap, now, step) {
   if (!state.triggered.has(trap.id) && overlaps(player, trap.trigger)) {
     state.triggered.add(trap.id);
     trap.activeAt = now + trap.delay;
@@ -465,15 +468,15 @@ function updateTrap(trap, now) {
     const blockCenter = trap.block.x + trap.block.w / 2;
     const playerCenter = player.x + player.w / 2;
     const direction = Math.sign(playerCenter - blockCenter) || 1;
-    trap.vx = clamp((trap.vx || 0) + direction * 0.9, -8.6, 8.6);
-    trap.vy = Math.min((trap.vy || 3.5) + 1.75, 24);
-    trap.block.x += trap.vx;
-    trap.block.y += trap.vy;
+    trap.vx = clamp((trap.vx || 0) + direction * 0.9 * step, -8.6, 8.6);
+    trap.vy = Math.min((trap.vy || 3.5) + 1.75 * step, 24);
+    trap.block.x += trap.vx * step;
+    trap.block.y += trap.vy * step;
   }
 
   if (trap.block.type === "crumbly") {
-    trap.block.y += 7;
-    trap.block.h = Math.max(0, trap.block.h - 1);
+    trap.block.y += 7 * step;
+    trap.block.h = Math.max(0, trap.block.h - 1 * step);
   }
 }
 
@@ -495,7 +498,7 @@ function updateHazard(hazard, now) {
   hazard.y = hazard.bottom - hazard.h;
 }
 
-function updateBomb(bomb, now) {
+function updateBomb(bomb, now, step) {
   if (!bomb.active && player.x >= bomb.activeAfterX) {
     bomb.active = true;
     bomb.stateStarted = now;
@@ -506,7 +509,7 @@ function updateBomb(bomb, now) {
   const bombCenter = bomb.x + bomb.w / 2;
 
   if (bomb.state === "chase") {
-    bomb.x += Math.sign(playerCenter - bombCenter) * bomb.speed;
+    bomb.x += Math.sign(playerCenter - bombCenter) * bomb.speed * step;
     bomb.countdownMs = Math.max(0, 5000 - elapsed);
     if (bomb.countdownMs <= 0) explodeBomb(bomb, now, "fakeout");
   } else if (bomb.state === "fakeout") {
@@ -519,7 +522,7 @@ function updateBomb(bomb, now) {
       state.flash = 10;
     }
   } else if (bomb.state === "return") {
-    bomb.x += Math.sign(playerCenter - bombCenter) * (bomb.speed * 1.4);
+    bomb.x += Math.sign(playerCenter - bombCenter) * (bomb.speed * 1.4) * step;
     bomb.countdownMs = Math.max(0, bomb.secondBlastMs - elapsed);
     if (bomb.countdownMs <= 0) explodeBomb(bomb, now, "chase");
   }
