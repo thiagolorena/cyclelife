@@ -234,6 +234,8 @@ A bomba gigante aparece na fase 3.
 Comportamento:
 
 - Ativa quando o jogador avanca pela fase final.
+- Depois de ativada, permanece ativa mesmo se o jogador virar de costas ou recuar.
+- Quando fica fora da camera, um indicador na borda mostra sua direcao para nao parecer que desapareceu.
 - Persegue o jogador lentamente.
 - Mostra contagem regressiva ate 5.
 - Ao chegar em zero, explode em uma area grande e mata o jogador se estiver perto.
@@ -255,7 +257,7 @@ O jogo possui:
 - Tremor de tela em morte e ativacao de armadilhas.
 - Flash vermelho em explosoes e eventos perigosos.
 - HUD com checkpoint atual, tempo e contador de mortes.
-- Overlay de vitoria ao chegar na porta.
+- Tela de vitoria ao concluir a fase 3, exibindo mortes totais e tempo final.
 - Sons simples controlados pelo volume do menu.
 
 ## Build atual
@@ -278,7 +280,8 @@ Como o projeto e estatico, "build" significa:
 - `b8cd9da`: nuvens-armadilha integradas ao cenario e espinhos com ciclos variaveis de subida/descida.
 - `1ff09d2`: menu animado, controle de volume, tres fases, espinhos somente nos buracos e bomba gigante na fase 3.
 - `1de13b0`: remocao da armadilha escondida na plataforma verde da fase 1 para preservar uma janela justa entre espinhos.
-- Versao atual: nomes publicos das fases sem subtitulo revelador, pause com ESC e dica flutuante inicial.
+- `d166137`: nomes publicos das fases sem subtitulo revelador, pause com ESC e dica flutuante inicial.
+- Versao atual: bomba final permanece visivel/indicada depois de ativada e tela final mostra mortes e tempo total.
 
 ## Proximos caminhos sugeridos
 

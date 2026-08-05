@@ -40,6 +40,7 @@ const state = {
   menuMessage: "",
   startTime: performance.now(),
   deaths: 0,
+  finalStats: null,
   won: false,
   levelIndex: 0,
   level: null,
@@ -277,6 +278,7 @@ function startGame() {
   state.mode = "game";
   state.won = false;
   state.deaths = 0;
+  state.finalStats = null;
   state.levelIndex = 0;
   state.startTime = performance.now();
   deathsEl.textContent = "Deaths: 0";
@@ -321,6 +323,7 @@ function reset(toCheckpoint = true) {
     bomb.y = levelDefinitions[state.levelIndex].bomb.y;
     bomb.state = "chase";
     bomb.stateStarted = performance.now();
+    bomb.active = false;
   }
   statusEl.textContent = `${state.level.name} - Checkpoint: ${spawn.label}`;
 }
@@ -339,6 +342,10 @@ function completeLevel() {
     loadLevel(state.levelIndex + 1);
     return;
   }
+  state.finalStats = {
+    deaths: state.deaths,
+    timeMs: performance.now() - state.startTime,
+  };
   state.won = true;
   state.mode = "win";
   statusEl.textContent = "Cycle complete";
@@ -489,7 +496,11 @@ function updateHazard(hazard, now) {
 }
 
 function updateBomb(bomb, now) {
-  if (player.x < bomb.activeAfterX) return;
+  if (!bomb.active && player.x >= bomb.activeAfterX) {
+    bomb.active = true;
+    bomb.stateStarted = now;
+  }
+  if (!bomb.active) return;
   const elapsed = now - bomb.stateStarted;
   const playerCenter = player.x + player.w / 2;
   const bombCenter = bomb.x + bomb.w / 2;
@@ -676,7 +687,12 @@ function drawWin() {
   ctx.fillText("CYCLE COMPLETE", W / 2, 240);
   ctx.fillStyle = "#e7edf2";
   ctx.font = "18px Courier New";
-  ctx.fillText("Pressione Enter ou Espaco para voltar ao menu", W / 2, 284);
+  const stats = state.finalStats || { deaths: state.deaths, timeMs: performance.now() - state.startTime };
+  ctx.fillText(`Mortes: ${stats.deaths}`, W / 2, 286);
+  ctx.fillText(`Tempo: ${formatTime(stats.timeMs)}`, W / 2, 316);
+  ctx.fillStyle = "#8ea2b1";
+  ctx.font = "16px Courier New";
+  ctx.fillText("Pressione Enter ou Espaco para voltar ao menu", W / 2, 358);
 }
 
 function drawBackground(now) {
@@ -776,7 +792,19 @@ function drawDoor(door) {
 }
 
 function drawBomb(bomb) {
-  if (player.x < bomb.activeAfterX) return;
+  if (!bomb.active) return;
+  const screenX = bomb.x - state.cameraX;
+  const offscreen = screenX < -bomb.w || screenX > W;
+  if (offscreen) {
+    const markerX = clamp(screenX, 18, W - 42) + state.cameraX;
+    ctx.fillStyle = "#ff3864";
+    ctx.fillRect(markerX, 388, 24, 24);
+    ctx.fillStyle = "#ffd166";
+    ctx.font = "700 16px Courier New";
+    ctx.textAlign = "center";
+    ctx.fillText("!", markerX + 12, 407);
+    return;
+  }
   if (bomb.state === "fakeout") {
     ctx.fillStyle = "#2a1a20";
     ctx.fillRect(bomb.x - 22, bomb.y + 28, bomb.w + 44, 20);
