@@ -20,6 +20,17 @@ Controls:
 - `index.html` contains the game shell.
 - `style.css` handles the responsive pixel-art frame and touch controls.
 - `game.js` contains the canvas game loop, physics, traps, checkpoints, and level data.
+- `docs/PROJECT_DOCUMENTATION.md` is the living project documentation and should be updated with every build.
+
+## Build notes
+
+Every build should include:
+
+- Updated project documentation.
+- A playable link.
+- A summary of changes.
+- Validation details.
+- The pushed commit when changes are sent to GitHub.
 
 ## Next ideas
 
