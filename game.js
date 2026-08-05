@@ -50,12 +50,12 @@ const solids = [
 
 const hazards = [
   rect(552, 472, 88, 24, "pit"),
-  rect(900, 444, 92, 52, "spikes", { expandable: true, triggerRange: 92, baseY: 444, baseH: 52, expandedY: 384, expandedH: 112 }),
+  rect(900, 488, 92, 8, "spikes", { cycling: true, bottom: 496, minH: 0, maxH: 112, period: 2600, offset: 250 }),
   rect(1280, 472, 110, 24, "pit"),
-  rect(1458, 444, 84, 52, "spikes", { expandable: true, triggerRange: 84, baseY: 444, baseH: 52, expandedY: 396, expandedH: 100 }),
+  rect(1458, 488, 84, 8, "spikes", { cycling: true, bottom: 496, minH: 0, maxH: 100, period: 3300, offset: 1200 }),
   rect(1860, 472, 128, 24, "pit"),
   rect(2378, 472, 72, 24, "pit"),
-  rect(2810, 444, 120, 52, "spikes", { expandable: true, triggerRange: 110, baseY: 444, baseH: 52, expandedY: 372, expandedH: 124 }),
+  rect(2810, 488, 120, 8, "spikes", { cycling: true, bottom: 496, minH: 0, maxH: 124, period: 4100, offset: 800 }),
   rect(3650, 472, 180, 24, "pit"),
   rect(1210, 430, 28, 28, "saw"),
   rect(2658, 430, 28, 28, "saw"),
@@ -71,7 +71,7 @@ const traps = [
   {
     id: "ceiling-1",
     trigger: rect(330, 0, 80, H),
-    block: rect(390, 238, 122, 90, "falling"),
+    block: rect(390, 104, 132, 66, "falling"),
     vx: 0,
     vy: 0,
     delay: 80,
@@ -92,7 +92,7 @@ const traps = [
   {
     id: "ceiling-2",
     trigger: rect(2050, 0, 80, H),
-    block: rect(2138, 196, 120, 110, "falling"),
+    block: rect(2138, 92, 132, 72, "falling"),
     vx: 0,
     vy: 0,
     delay: 45,
@@ -107,7 +107,7 @@ const traps = [
   {
     id: "last-lie",
     trigger: rect(3316, 0, 78, H),
-    block: rect(3420, 244, 98, 74, "falling"),
+    block: rect(3420, 116, 112, 62, "falling"),
     vx: 0,
     vy: 0,
     delay: 60,
@@ -137,23 +137,17 @@ function reset(toCheckpoint = true) {
   state.triggered.clear();
   state.shake = 8;
   state.flash = 0;
-  for (const hazard of hazards) {
-    if (!hazard.expandable) continue;
-    hazard.y = hazard.baseY;
-    hazard.h = hazard.baseH;
-    hazard.expanded = false;
-  }
   for (const cp of checkpoints) cp.exploded = false;
   for (const trap of traps) {
     trap.vx = 0;
     trap.vy = 0;
     trap.armed = false;
     trap.activeAt = 0;
-    if (trap.id === "ceiling-1") Object.assign(trap.block, rect(390, 238, 122, 90, "falling"));
+    if (trap.id === "ceiling-1") Object.assign(trap.block, rect(390, 104, 132, 66, "falling"));
     if (trap.id === "fake-bridge") Object.assign(trap.block, rect(1584, 458, 136, 38, "crumbly"));
-    if (trap.id === "ceiling-2") Object.assign(trap.block, rect(2138, 196, 120, 110, "falling"));
+    if (trap.id === "ceiling-2") Object.assign(trap.block, rect(2138, 92, 132, 72, "falling"));
     if (trap.id === "runway") Object.assign(trap.block, rect(2572, 458, 128, 38, "crumbly"));
-    if (trap.id === "last-lie") Object.assign(trap.block, rect(3420, 244, 98, 74, "falling"));
+    if (trap.id === "last-lie") Object.assign(trap.block, rect(3420, 116, 112, 62, "falling"));
   }
   statusEl.textContent = `Checkpoint: ${spawn.label}`;
 }
@@ -209,7 +203,7 @@ function update(dt, now) {
   }
 
   for (const trap of traps) updateTrap(trap, now);
-  for (const hazard of hazards) updateHazard(hazard);
+  for (const hazard of hazards) updateHazard(hazard, now);
   for (const hazard of hazards) if (overlaps(player, hazard)) kill();
   for (const trap of traps) {
     if ((trap.block.type === "falling" || trap.block.type === "hiddenSaw") && overlaps(player, trap.block)) kill();
@@ -249,18 +243,27 @@ function updateTrap(trap, now) {
   }
 }
 
-function updateHazard(hazard) {
-  if (!hazard.expandable || hazard.expanded) return;
-  const playerCenter = player.x + player.w / 2;
-  const hazardCenter = hazard.x + hazard.w / 2;
-  const closeX = Math.abs(playerCenter - hazardCenter) < hazard.w / 2 + hazard.triggerRange;
-  const nearFloor = player.y + player.h > hazard.baseY - 96;
-  if (!closeX || !nearFloor) return;
-  hazard.expanded = true;
-  hazard.y = hazard.expandedY;
-  hazard.h = hazard.expandedH;
-  state.shake = Math.max(state.shake, 10);
-  state.flash = Math.max(state.flash, 8);
+function updateHazard(hazard, now) {
+  if (!hazard.cycling) return;
+  const position = (now + hazard.offset) % hazard.period;
+  const safe = hazard.period * 0.34;
+  const grow = hazard.period * 0.2;
+  const high = hazard.period * 0.28;
+  let t = 0;
+
+  if (position < safe) {
+    t = 0;
+  } else if (position < safe + grow) {
+    t = (position - safe) / grow;
+  } else if (position < safe + grow + high) {
+    t = 1;
+  } else {
+    t = 1 - (position - safe - grow - high) / (hazard.period - safe - grow - high);
+  }
+
+  const eased = t * t * (3 - 2 * t);
+  hazard.h = Math.round(hazard.minH + (hazard.maxH - hazard.minH) * eased);
+  hazard.y = hazard.bottom - hazard.h;
 }
 
 function move(dx, dy) {
@@ -342,7 +345,12 @@ function drawTiles() {
 }
 
 function drawBlock(block) {
-  const color = block.type === "falling" ? "#7a4f39" : "#3e7f4f";
+  if (block.type === "falling") {
+    drawCloudTrap(block);
+    return;
+  }
+
+  const color = "#3e7f4f";
   ctx.fillStyle = color;
   ctx.fillRect(block.x, block.y, block.w, block.h);
   ctx.fillStyle = "rgba(255,255,255,0.16)";
@@ -355,10 +363,33 @@ function drawBlock(block) {
   }
 }
 
+function drawCloudTrap(block) {
+  ctx.fillStyle = "#d7e6ee";
+  ctx.fillRect(block.x + 18, block.y + 26, block.w - 28, 30);
+  ctx.fillRect(block.x + 34, block.y + 12, 36, 28);
+  ctx.fillRect(block.x + 68, block.y + 6, 42, 34);
+  ctx.fillRect(block.x + 94, block.y + 22, 32, 26);
+  ctx.fillStyle = "#9fb7c6";
+  ctx.fillRect(block.x + 18, block.y + 50, block.w - 28, 8);
+  ctx.fillRect(block.x + 46, block.y + 34, 16, 6);
+  ctx.fillRect(block.x + 88, block.y + 30, 18, 6);
+  ctx.fillStyle = "#263746";
+  ctx.fillRect(block.x + 40, block.y + 44, 10, 5);
+  ctx.fillRect(block.x + block.w - 50, block.y + 44, 10, 5);
+  ctx.fillStyle = "#ff3864";
+  ctx.fillRect(block.x + block.w / 2 - 5, block.y + block.h - 4, 10, 8);
+}
+
 function drawHazard(h) {
+  if (h.type === "spikes" && h.h <= 2) {
+    ctx.fillStyle = "#4d1826";
+    ctx.fillRect(h.x, h.bottom - 4, h.w, 4);
+    return;
+  }
+
   ctx.fillStyle = h.type === "pit" ? "#05080c" : "#8d1730";
   ctx.fillRect(h.x, h.y, h.w, h.h);
-  ctx.fillStyle = h.expandable && h.expanded ? "#ffd166" : "#ff3864";
+  ctx.fillStyle = h.cycling && h.h > h.maxH * 0.7 ? "#ffd166" : "#ff3864";
   for (let x = h.x; x < h.x + h.w; x += 16) {
     ctx.beginPath();
     ctx.moveTo(x, h.y + h.h);

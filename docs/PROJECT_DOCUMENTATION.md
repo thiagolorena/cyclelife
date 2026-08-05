@@ -19,7 +19,7 @@ Em toda entrega de build, responder ao usuario com:
 
 Cyclelife e um jogo de plataforma 2D em pixel art, simples e dificil, feito para matar o jogador por meio do proprio cenario.
 
-O jogador possui apenas uma vida. Ao morrer, ele retorna ao inicio da fase ou ao ultimo checkpoint valido. O objetivo da fase e chegar ate uma porta. A dificuldade vem de armadilhas que parecem parte normal do mapa, mas reagem ao jogador: blocos caem, chao desaparece, serras aparecem, espinhos crescem e checkpoints podem enganar.
+O jogador possui apenas uma vida. Ao morrer, ele retorna ao inicio da fase ou ao ultimo checkpoint valido. O objetivo da fase e chegar ate uma porta. A dificuldade vem de armadilhas que parecem parte normal do mapa, mas reagem ao jogador: nuvens do cenario caem, chao desaparece, serras aparecem, espinhos sobem e descem, e checkpoints podem enganar.
 
 ## Pilares de design
 
@@ -101,7 +101,7 @@ A fase atual tem largura de 3720 px e altura de 540 px. A camera acompanha o jog
 Solidos atuais:
 
 - Plataformas verdes de chao em segmentos separados.
-- Blocos marrons de armadilha que podem cair.
+- Nuvens-armadilha que parecem parte do fundo, mas podem cair.
 - Pontes falsas do tipo `crumbly`, que desaparecem quando ativadas.
 
 Blocos cinzas:
@@ -129,15 +129,16 @@ Comportamento:
 
 ## Armadilhas atuais
 
-### Blocos marrons perseguidores
+### Nuvens-armadilha perseguidoras
 
-Blocos do tipo `falling` agora:
+Elementos do tipo `falling` agora sao desenhados como nuvens do cenario:
 
 - Ativam quando o jogador cruza uma zona invisivel.
 - Esperam um delay curto.
 - Caem muito mais rapido que na primeira versao.
 - Tambem se movem lateralmente em direcao ao jogador.
 - Ainda sao esquivaveis caso o jogador reaja rapido.
+- Nao devem parecer blocos soltos voando; visualmente precisam parecer parte do ceu/cenario antes da ativacao.
 
 Configuracao atual:
 
@@ -163,20 +164,21 @@ Armadilhas do tipo `crumbly`:
 - Ao ativar, descem rapidamente e perdem altura.
 - Criam buracos inesperados.
 
-### Espinhos expansivos
+### Espinhos ciclicos
 
 Alguns espinhos do chao agora:
 
-- Aumentam de tamanho quando o jogador passa perto.
-- Mudam de vermelho para amarelo ao expandir.
-- Foram pensados para matar o jogador sem chance caso ele entre na distancia errada.
-- Resetam ao morrer.
+- Sobem e descem em intervalos variaveis.
+- Podem ficar totalmente baixos ou praticamente sumidos.
+- Criam janelas reais de passagem para o jogador.
+- Mudam de vermelho para amarelo quando estao perto da altura maxima.
+- Cada conjunto possui ritmo proprio para evitar um padrao unico e previsivel demais.
 
-Espinhos expansivos atuais:
+Espinhos ciclicos atuais:
 
-- Em torno de `x = 900`.
-- Em torno de `x = 1458`.
-- Em torno de `x = 2810`.
+- Em torno de `x = 900`, periodo 2600 ms.
+- Em torno de `x = 1458`, periodo 3300 ms.
+- Em torno de `x = 2810`, periodo 4100 ms.
 
 ### Buracos
 
@@ -211,6 +213,7 @@ Como o projeto e estatico, "build" significa:
 - `e0d23a2`: prototipo inicial jogavel.
 - `0276730`: merge com commit inicial do repositorio remoto.
 - `060aaa0`: ajuste das armadilhas mortais, blocos perseguidores, espinhos expansivos e checkpoint explosivo.
+- Build atual em desenvolvimento: nuvens-armadilha integradas ao cenario e espinhos com ciclos variaveis de subida/descida.
 
 ## Proximos caminhos sugeridos
 
