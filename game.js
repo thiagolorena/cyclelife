@@ -54,6 +54,7 @@ const menuButtons = [
   { id: "volume", label: "Volume", x: 372, y: 346, w: 216, h: 48 },
   { id: "exit", label: "Sair", x: 372, y: 406, w: 216, h: 48 },
 ];
+const pauseButtons = [{ id: "menu", label: "Sair", x: 372, y: 336, w: 216, h: 48 }];
 
 const levelDefinitions = makeLevels();
 
@@ -64,7 +65,7 @@ function rect(x, y, w, h, type, extra = {}) {
 function makeLevels() {
   return [
     {
-      name: "Fase 1 - Ceu Falso",
+      name: "Fase 1",
       width: 3720,
       spawn: { x: 58, y: 397, label: "Start" },
       solids: [
@@ -106,7 +107,7 @@ function makeLevels() {
       door: rect(3568, 386, 44, 72, "door"),
     },
     {
-      name: "Fase 2 - Chao Mentiroso",
+      name: "Fase 2",
       width: 3140,
       spawn: { x: 54, y: 397, label: "Start" },
       solids: [
@@ -141,7 +142,7 @@ function makeLevels() {
       door: rect(2972, 386, 44, 72, "door"),
     },
     {
-      name: "Fase 3 - Bomba de Cinco",
+      name: "Fase 3",
       width: 3320,
       spawn: { x: 58, y: 397, label: "Start" },
       solids: [
@@ -348,6 +349,10 @@ function update(dt, now) {
     updateMenuInput();
     return;
   }
+  if (state.mode === "paused") {
+    updatePauseInput();
+    return;
+  }
   if (state.mode === "win") {
     if (inputDown("Enter") || inputDown("Space")) state.mode = "menu";
     return;
@@ -427,6 +432,16 @@ function updateMenuInput() {
     playTone(120, 0.08);
     window.close();
   }
+}
+
+function updatePauseInput() {
+  if (!pointer.clicked) return;
+  const clicked = pauseButtons.find((button) => pointInRect(pointer, button));
+  pointer.clicked = false;
+  if (!clicked) return;
+  state.mode = "menu";
+  state.menuMessage = "";
+  playTone(140, 0.08);
 }
 
 function updateTrap(trap, now) {
@@ -570,7 +585,7 @@ function clamp(value, min, max) {
 }
 
 function draw(now) {
-  setHudVisible(state.mode === "game");
+  setHudVisible(state.mode === "game" || state.mode === "paused");
   touchControlsEl.style.visibility = state.mode === "game" ? "visible" : "hidden";
   ctx.clearRect(0, 0, W, H);
   if (state.mode === "menu" || state.mode === "closed") {
@@ -592,6 +607,7 @@ function draw(now) {
   drawCheckpoints();
   if (state.level.bomb) drawBomb(state.level.bomb);
   drawPlayer(now);
+  drawStartHint(now);
   ctx.restore();
   drawOverlay();
 }
@@ -798,10 +814,51 @@ function drawPlayer(now) {
   ctx.fillRect(player.x + 13, player.y + player.h - 2 + bob, 7, 4 - leg);
 }
 
+function drawStartHint(now) {
+  if (state.levelIndex !== 0 || player.x > state.level.spawn.x + 135) return;
+  const alpha = clamp(1 - Math.max(0, player.x - state.level.spawn.x - 70) / 65, 0, 1);
+  const x = state.level.spawn.x + 78;
+  const y = 306 + Math.sin(now * 0.003) * 3;
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = "rgba(5, 8, 12, 0.78)";
+  ctx.fillRect(x, y, 316, 56);
+  ctx.strokeStyle = "#ffd166";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x, y, 316, 56);
+  ctx.fillStyle = "#e7edf2";
+  ctx.font = "700 14px Courier New";
+  ctx.textAlign = "left";
+  ctx.fillText("A/D ou setas: andar", x + 14, y + 22);
+  ctx.fillText("Espaco: pular   Shift: correr", x + 14, y + 42);
+  ctx.globalAlpha = 1;
+}
+
 function drawOverlay() {
   if (state.flash > 0) {
     ctx.fillStyle = `rgba(255, 56, 100, ${Math.min(0.34, state.flash / 30)})`;
     ctx.fillRect(0, 0, W, H);
+  }
+  if (state.mode !== "paused") return;
+  ctx.fillStyle = "rgba(5, 8, 12, 0.68)";
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = "#e7edf2";
+  ctx.font = "700 44px Courier New";
+  ctx.textAlign = "center";
+  ctx.fillText("PAUSE", W / 2, 272);
+  ctx.font = "16px Courier New";
+  ctx.fillStyle = "#8ea2b1";
+  ctx.fillText("ESC para continuar", W / 2, 306);
+
+  for (const button of pauseButtons) {
+    const hover = pointInRect(pointer, button);
+    ctx.fillStyle = hover ? "#ffd166" : "#121820";
+    ctx.fillRect(button.x, button.y, button.w, button.h);
+    ctx.strokeStyle = hover ? "#e7edf2" : "#4e6375";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(button.x, button.y, button.w, button.h);
+    ctx.fillStyle = hover ? "#05080c" : "#e7edf2";
+    ctx.font = "700 22px Courier New";
+    ctx.fillText(button.label, button.x + button.w / 2, button.y + 31);
   }
 }
 
@@ -848,6 +905,17 @@ function loop(now) {
 
 window.addEventListener("keydown", (event) => {
   keys.add(event.code);
+  if (event.code === "Escape" && !event.repeat) {
+    if (state.mode === "game") {
+      state.mode = "paused";
+      pointer.clicked = false;
+      playTone(170, 0.05);
+    } else if (state.mode === "paused") {
+      state.mode = "game";
+      pointer.clicked = false;
+      playTone(260, 0.05);
+    }
+  }
   if (state.mode === "menu" && (event.code === "Enter" || event.code === "Space")) startGame();
   if (event.code === "KeyR" && state.mode === "game") {
     state.won = false;

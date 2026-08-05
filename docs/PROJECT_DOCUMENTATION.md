@@ -56,6 +56,17 @@ Elementos atuais:
 
 O volume controla os sons simples gerados por Web Audio. Se o navegador bloquear audio antes de uma interacao, o jogo continua normalmente em silencio.
 
+## Pause
+
+Durante o jogo, ESC alterna o pause.
+
+Comportamento atual:
+
+- O jogo congela enquanto esta pausado.
+- A HUD permanece visivel.
+- A tela exibe `PAUSE`, a instrucao para continuar com ESC e um botao `Sair`.
+- O botao `Sair` tem o mesmo estilo dos botoes do menu e retorna ao menu principal.
+
 ## Link local para jogar
 
 Abrir:
@@ -84,6 +95,7 @@ Teclado:
 - Pular: Espaco, W ou seta para cima.
 - Correr: Shift.
 - Reiniciar fase: R.
+- Pausar/continuar: ESC.
 - Menu: clique em `Jogar`, `Volume` ou `Sair`.
 
 Toque:
@@ -131,9 +143,18 @@ Saida:
 
 Fases atuais:
 
-- `Fase 1 - Ceu Falso`: apresenta nuvens-armadilha, serras escondidas, buracos com espinhos e checkpoint falso.
-- `Fase 2 - Chao Mentiroso`: aumenta o uso de pontes falsas, buracos com espinhos e outro checkpoint falso.
-- `Fase 3 - Bomba de Cinco`: adiciona a bomba gigante perseguidora com explosao enganosa.
+- O jogo exibe apenas `Fase 1`, `Fase 2` e `Fase 3` para nao entregar a identidade ou truques da fase ao jogador.
+- Internamente, cada fase continua com sua propria combinacao de armadilhas e ritmo.
+
+## Dica inicial
+
+A fase 1 exibe uma dica flutuante discreta perto do inicio.
+
+Comportamento atual:
+
+- Mostra os controles basicos de movimento, pulo e corrida.
+- Usa uma caixa pequena com borda dourada e leve flutuacao.
+- Desaparece gradualmente assim que o jogador anda um pouco pela fase.
 
 ## Checkpoints
 
@@ -256,7 +277,8 @@ Como o projeto e estatico, "build" significa:
 - `060aaa0`: ajuste das armadilhas mortais, blocos perseguidores, espinhos expansivos e checkpoint explosivo.
 - `b8cd9da`: nuvens-armadilha integradas ao cenario e espinhos com ciclos variaveis de subida/descida.
 - `1ff09d2`: menu animado, controle de volume, tres fases, espinhos somente nos buracos e bomba gigante na fase 3.
-- Versao atual: remocao da armadilha escondida na plataforma verde da fase 1 para preservar uma janela justa entre espinhos.
+- `1de13b0`: remocao da armadilha escondida na plataforma verde da fase 1 para preservar uma janela justa entre espinhos.
+- Versao atual: nomes publicos das fases sem subtitulo revelador, pause com ESC e dica flutuante inicial.
 
 ## Proximos caminhos sugeridos
 

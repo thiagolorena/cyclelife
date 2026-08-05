@@ -14,6 +14,7 @@ Controls:
 - Jump: Space, W, or Up
 - Run: Shift
 - Restart: R
+- Pause: Esc
 - Menu: click Jogar, Sair, or Volume
 
 ## Project shape
