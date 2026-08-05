@@ -178,6 +178,8 @@ Armadilhas do tipo `hiddenSaw`:
 - Comecam invisiveis.
 - Surgem no chao depois que o jogador passa pela area de ativacao.
 - Matam ao encostar.
+- Nao devem surgir em plataformas verdes muito proximas de espinhos de buraco, para nao criar bloqueios impossiveis.
+- A serra escondida inicial da fase 1 foi removida por ficar perto demais da sequencia de espinhos.
 
 ### Pontes falsas
 
@@ -253,7 +255,8 @@ Como o projeto e estatico, "build" significa:
 - `0276730`: merge com commit inicial do repositorio remoto.
 - `060aaa0`: ajuste das armadilhas mortais, blocos perseguidores, espinhos expansivos e checkpoint explosivo.
 - `b8cd9da`: nuvens-armadilha integradas ao cenario e espinhos com ciclos variaveis de subida/descida.
-- Versao atual: menu animado, controle de volume, tres fases, espinhos somente nos buracos e bomba gigante na fase 3.
+- `1ff09d2`: menu animado, controle de volume, tres fases, espinhos somente nos buracos e bomba gigante na fase 3.
+- Versao atual: remocao da armadilha escondida na plataforma verde da fase 1 para preservar uma janela justa entre espinhos.
 
 ## Proximos caminhos sugeridos
 

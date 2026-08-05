@@ -98,7 +98,6 @@ function makeLevels() {
       ],
       traps: [
         cloudTrap("cloud-1", 330, 390, 104, 132, 66, 80),
-        hiddenSaw("floor-saw-1", 700, 792, 430, 96, 28),
         crumbly("fake-bridge", 1515, 1584, 458, 136, 38),
         cloudTrap("cloud-2", 2050, 2138, 92, 132, 72, 45),
         crumbly("runway", 2470, 2572, 458, 128, 38),
