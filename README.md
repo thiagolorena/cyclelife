@@ -2,7 +2,7 @@
 
 Cyclelife is a tiny 2D pixel-art platformer prototype built around one cruel rule: the level is trying to kill you.
 
-The player has one life. Death sends them back to the latest checkpoint. The exit is a door at the end of the stage, but the scenario itself becomes the enemy: falling ceilings, fake floors, hidden saws, pits, and traps that punish rushing.
+The player has one life. Death sends them back to the latest checkpoint. The exit is a door at the end of the stage, but the scenario itself becomes the enemy: homing falling blocks, fake floors, hidden saws, expanding spikes, pits, and even a checkpoint that lies.
 
 ## Play
 
