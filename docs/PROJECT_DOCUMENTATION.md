@@ -19,7 +19,7 @@ Em toda entrega de build, responder ao usuario com:
 
 Cyclelife e um jogo de plataforma 2D em pixel art, simples e dificil, feito para matar o jogador por meio do proprio cenario.
 
-O jogador possui apenas uma vida. Ao morrer, ele retorna ao inicio da fase ou ao ultimo checkpoint valido. O objetivo da fase e chegar ate uma porta. A dificuldade vem de armadilhas que parecem parte normal do mapa, mas reagem ao jogador: nuvens do cenario caem, chao desaparece, serras aparecem, espinhos sobem e descem, e checkpoints podem enganar.
+O jogador possui apenas uma vida. Ao morrer, ele retorna ao inicio da fase ou ao ultimo checkpoint valido. O objetivo de cada fase e chegar ate uma porta. A dificuldade vem de armadilhas que parecem parte normal do mapa, mas reagem ao jogador: nuvens do cenario caem, chao desaparece, serras aparecem, espinhos sobem de buracos, checkpoints podem enganar e uma bomba gigante persegue o jogador na fase final.
 
 ## Pilares de design
 
@@ -41,6 +41,20 @@ Arquivos principais:
 - `game.js`: loop principal, fisica, colisao, camera, fase, armadilhas, checkpoints e renderizacao.
 - `README.md`: resumo publico do projeto.
 - `docs/PROJECT_DOCUMENTATION.md`: documentacao completa e parametro de trabalho.
+
+## Menu do jogo
+
+O jogo abre em um menu animado renderizado no canvas.
+
+Elementos atuais:
+
+- Titulo `CYCLELIFE`.
+- Fundo com nuvens animadas e chao pixel art.
+- Botao `Jogar`, que inicia a fase 1.
+- Botao `Volume`, que alterna entre `100%`, `50%` e `0%`.
+- Botao `Sair`, que mostra a mensagem para fechar a aba.
+
+O volume controla os sons simples gerados por Web Audio. Se o navegador bloquear audio antes de uma interacao, o jogo continua normalmente em silencio.
 
 ## Link local para jogar
 
@@ -70,6 +84,7 @@ Teclado:
 - Pular: Espaco, W ou seta para cima.
 - Correr: Shift.
 - Reiniciar fase: R.
+- Menu: clique em `Jogar`, `Volume` ou `Sair`.
 
 Toque:
 
@@ -94,9 +109,9 @@ Valores atuais:
 - Velocidade correndo: 5.2.
 - Forca do pulo: -13.2.
 
-## Estrutura da fase
+## Estrutura das fases
 
-A fase atual tem largura de 3720 px e altura de 540 px. A camera acompanha o jogador lateralmente.
+O jogo possui 3 fases. Cada fase tem largura propria, porta de saida, chao segmentado, buracos, checkpoints e armadilhas. A camera acompanha o jogador lateralmente.
 
 Solidos atuais:
 
@@ -110,16 +125,24 @@ Blocos cinzas:
 
 Saida:
 
-- Porta no fim da fase em `x = 3568`, `y = 386`.
+- Porta no fim de cada fase.
+- Nas fases 1 e 2, entrar na porta carrega a proxima fase.
+- Na fase 3, entrar na porta conclui o jogo e mostra a tela de vitoria.
+
+Fases atuais:
+
+- `Fase 1 - Ceu Falso`: apresenta nuvens-armadilha, serras escondidas, buracos com espinhos e checkpoint falso.
+- `Fase 2 - Chao Mentiroso`: aumenta o uso de pontes falsas, buracos com espinhos e outro checkpoint falso.
+- `Fase 3 - Bomba de Cinco`: adiciona a bomba gigante perseguidora com explosao enganosa.
 
 ## Checkpoints
 
 Checkpoints atuais:
 
-- `Start`: ponto inicial.
-- `Old Switch`: checkpoint valido.
-- `Quiet Floor`: checkpoint falso/explosivo.
-- `Last Door`: checkpoint valido perto da saida.
+- Toda fase possui `Start`.
+- Fase 1: `Old Switch`, `Quiet Floor` falso/explosivo e `Last Door`.
+- Fase 2: `No Return` e `Free Flag` falso/explosivo.
+- Fase 3: `Fuse` e `Smoke`.
 
 Comportamento:
 
@@ -164,21 +187,36 @@ Armadilhas do tipo `crumbly`:
 - Ao ativar, descem rapidamente e perdem altura.
 - Criam buracos inesperados.
 
-### Espinhos ciclicos
+### Espinhos de buraco
 
-Alguns espinhos do chao agora:
+Os espinhos fixos no chao foram removidos. Os espinhos atuais ficam nos buracos:
 
 - Sobem e descem em intervalos variaveis.
 - Podem ficar totalmente baixos ou praticamente sumidos.
 - Criam janelas reais de passagem para o jogador.
 - Mudam de vermelho para amarelo quando estao perto da altura maxima.
 - Cada conjunto possui ritmo proprio para evitar um padrao unico e previsivel demais.
+- O jogador ainda morre se cair no fundo do buraco.
 
-Espinhos ciclicos atuais:
+Espinhos de buraco atuais:
 
-- Em torno de `x = 900`, periodo 2600 ms.
-- Em torno de `x = 1458`, periodo 3300 ms.
-- Em torno de `x = 2810`, periodo 4100 ms.
+- Fase 1: quatro buracos com espinhos ciclicos.
+- Fase 2: quatro buracos com espinhos ciclicos.
+- Fase 3: tres buracos com espinhos ciclicos.
+
+### Bomba gigante
+
+A bomba gigante aparece na fase 3.
+
+Comportamento:
+
+- Ativa quando o jogador avanca pela fase final.
+- Persegue o jogador lentamente.
+- Mostra contagem regressiva ate 5.
+- Ao chegar em zero, explode em uma area grande e mata o jogador se estiver perto.
+- Depois da explosao, parece ter acabado, mas volta rapidamente e detona de novo quase imediatamente.
+- Esse segundo estouro serve para enganar o jogador que tentar avancar logo apos a primeira explosao.
+- Depois do ciclo enganoso, a bomba continua perseguindo.
 
 ### Buracos
 
@@ -192,9 +230,10 @@ Buracos do tipo `pit`:
 O jogo possui:
 
 - Tremor de tela em morte e ativacao de armadilhas.
-- Flash vermelho em explosoes e espinhos expansivos.
+- Flash vermelho em explosoes e eventos perigosos.
 - HUD com checkpoint atual, tempo e contador de mortes.
 - Overlay de vitoria ao chegar na porta.
+- Sons simples controlados pelo volume do menu.
 
 ## Build atual
 
@@ -213,14 +252,14 @@ Como o projeto e estatico, "build" significa:
 - `e0d23a2`: prototipo inicial jogavel.
 - `0276730`: merge com commit inicial do repositorio remoto.
 - `060aaa0`: ajuste das armadilhas mortais, blocos perseguidores, espinhos expansivos e checkpoint explosivo.
-- Build atual em desenvolvimento: nuvens-armadilha integradas ao cenario e espinhos com ciclos variaveis de subida/descida.
+- `b8cd9da`: nuvens-armadilha integradas ao cenario e espinhos com ciclos variaveis de subida/descida.
+- Versao atual: menu animado, controle de volume, tres fases, espinhos somente nos buracos e bomba gigante na fase 3.
 
 ## Proximos caminhos sugeridos
 
 - Criar formato de fases baseado em JSON.
 - Adicionar sprites reais para jogador, blocos, serras, espinhos e porta.
 - Criar efeitos sonoros para pulo, morte, checkpoint, explosao e serra.
-- Adicionar tela de menu e selecao de fases.
 - Adicionar cronometro de melhor tempo.
 - Criar indicador sutil para checkpoints falsos, caso a dificuldade fique injusta demais.
 - Fazer deploy em GitHub Pages para ter link web publico jogavel.
