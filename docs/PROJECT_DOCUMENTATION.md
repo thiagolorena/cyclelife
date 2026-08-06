@@ -41,6 +41,7 @@ Arquivos principais:
 - `game.js`: loop principal, fisica, colisao, camera, fases, armadilhas, checkpoints, FX e renderizacao.
 - `assets/silver-feather-logo.png`: logo usado na tela inicial de loading.
 - `assets/world_tileset.png`: tileset usado para chao/grama e neve.
+- `assets/platforms.png`: sprite usado nas plataformas moveis da fase 5.
 - `README.md`: resumo publico do projeto.
 - `docs/PROJECT_DOCUMENTATION.md`: documentacao completa e parametro de trabalho.
 
@@ -135,8 +136,8 @@ Comportamento atual:
 
 - Apertar `F` abre ou fecha o seletor de fases.
 - Enquanto o seletor esta aberto, o gameplay fica congelado.
-- Clicar em `Fase 1`, `Fase 2`, `Fase 3` ou `Fase 4` carrega a fase imediatamente.
-- Com o seletor aberto, as teclas `1`, `2`, `3` e `4` tambem carregam a fase correspondente.
+- Clicar em `Fase 1`, `Fase 2`, `Fase 3`, `Fase 4` ou `Fase 5` carrega a fase imediatamente.
+- Com o seletor aberto, as teclas `1`, `2`, `3`, `4` e `5` tambem carregam a fase correspondente.
 - Ao escolher uma fase, o contador de mortes e o cronometro sao reiniciados para facilitar teste isolado.
 
 ## Jogador e colisao
@@ -173,13 +174,14 @@ Valores atuais:
 
 ## Estrutura das fases
 
-O jogo possui 4 fases. Cada fase tem largura propria, porta de saida, chao segmentado, buracos, checkpoints e armadilhas. A camera acompanha o jogador lateralmente.
+O jogo possui 5 fases. Cada fase tem largura propria, porta de saida, chao segmentado, buracos, checkpoints e armadilhas. A camera acompanha o jogador lateralmente.
 
 Solidos atuais:
 
 - Plataformas de chao em segmentos separados.
 - As fases 1, 2 e 3 usam o primeiro sprite da primeira fileira do tileset: grama e terra juntos.
 - A fase 4 usa tiles de neve identificados na fileira superior direita do tileset, nos blocos azul-claro/ciano com topo branco.
+- A fase 5 adiciona plataformas moveis usando o sprite `assets/platforms.png`.
 - Nuvens-armadilha que parecem parte do fundo, mas podem cair.
 
 Blocos cinzas:
@@ -195,13 +197,27 @@ Saida:
 
 - Porta no fim de cada fase.
 - Nas fases 1, 2 e 3, entrar na porta carrega a proxima fase.
-- Na fase 4, entrar na porta conclui o jogo e mostra a tela de vitoria.
+- Na fase 4, entrar na porta carrega a fase 5.
+- Na fase 5, entrar na porta conclui o jogo e mostra a tela de vitoria.
 - A porta da fase 4 fica totalmente apoiada na ultima plataforma.
 
 Fases atuais:
 
-- O jogo exibe apenas `Fase 1`, `Fase 2`, `Fase 3` e `Fase 4` para nao entregar a identidade ou truques da fase ao jogador.
+- O jogo exibe apenas `Fase 1`, `Fase 2`, `Fase 3`, `Fase 4` e `Fase 5` para nao entregar a identidade ou truques da fase ao jogador.
 - Internamente, cada fase continua com sua propria combinacao de armadilhas e ritmo.
+
+### Fase 5
+
+A fase 5 e focada em paciencia com plataformas moveis.
+
+Comportamento:
+
+- O jogador nasce em uma plataforma fixa.
+- A frente existe um grande buraco e varias plataformas que andam sozinhas.
+- O jogador precisa esperar cada plataforma chegar em uma posicao boa antes de pular.
+- As plataformas carregam o jogador enquanto ele esta em cima delas.
+- O visual usa a primeira linha verde do sprite `platforms.png`.
+- Existe um checkpoint seguro perto da plataforma final.
 
 ## Dica inicial
 
@@ -342,7 +358,7 @@ O jogo possui:
 - Animacao especial de morte espetada nos espinhos.
 - Jogador com desenho suavizado, sombra e leve squash/stretch.
 - HUD com checkpoint atual, tempo e contador de mortes.
-- Tela de vitoria ao concluir a fase 4, exibindo mortes totais e tempo final.
+- Tela de vitoria ao concluir a fase 5, exibindo mortes totais e tempo final.
 - Sons simples controlados pelo volume do menu.
 
 ## Build atual
@@ -377,7 +393,8 @@ Como o projeto e estatico, "build" significa:
 - `127f3f8`: cachecol limitado a fase 4 e tesoura com golpe de corte quando chega perto do jogador.
 - `c10bfa6`: tecla `W` removida do comando de pulo; pulo permanece em Espaco e seta para cima.
 - `6294d38`: menu inicial com animacao do jogador correndo de uma marreta gigante sem ser atingido.
-- Versao atual: animacao da marreta reposicionada para usar o chao verde existente do menu, como segundo plano atras dos botoes.
+- `cf2cbf7`: animacao da marreta reposicionada para usar o chao verde existente do menu, como segundo plano atras dos botoes.
+- Versao atual: quinta fase adicionada com plataformas moveis automaticas e sprite dedicado.
 
 ## Proximos caminhos sugeridos
 

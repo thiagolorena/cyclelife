@@ -18,6 +18,8 @@ const logoImage = new Image();
 logoImage.src = "assets/silver-feather-logo.png";
 const tilesetImage = new Image();
 tilesetImage.src = "assets/world_tileset.png";
+const platformImage = new Image();
+platformImage.src = "assets/platforms.png";
 const TILE_SIZE = 16;
 const tiles = {
   grass: { sx: 0, sy: 0 },
@@ -249,6 +251,35 @@ function makeLevels() {
       },
       door: rect(3304, 386, 44, 72, "door"),
     },
+    {
+      name: "Fase 5",
+      width: 3540,
+      spawn: { x: 58, y: 397, label: "Start" },
+      solids: [
+        rect(0, 458, 360, 38, "grass"),
+        rect(3180, 458, 300, 38, "grass"),
+      ],
+      hazards: [
+        rect(360, 496, 2820, 80, "pit"),
+      ],
+      checkpoints: [
+        rect(3228, 408, 28, 50, "cp", { label: "Last Step" }),
+      ],
+      traps: [
+        cloudTrap("patience-cloud-a", 940, 1018, 104, 132, 66, 70),
+        hiddenSaw("patience-saw-a", 2390, 2480, 220, 92, 28),
+      ],
+      movingPlatforms: [
+        movingPlatform("mp-1", 430, 410, 112, 22, 430, 720, 0.9),
+        movingPlatform("mp-2", 820, 348, 112, 22, 820, 1120, 0.78, 900),
+        movingPlatform("mp-3", 1210, 286, 112, 22, 1210, 1510, 0.72, 500),
+        movingPlatform("mp-4", 1660, 316, 112, 22, 1660, 1960, 0.84, 1200),
+        movingPlatform("mp-5", 2050, 378, 112, 22, 2050, 2360, 0.76, 300),
+        movingPlatform("mp-6", 2440, 318, 112, 22, 2440, 2770, 0.88, 700),
+        movingPlatform("mp-7", 2860, 408, 112, 22, 2860, 3110, 0.7, 1100),
+      ],
+      door: rect(3396, 386, 44, 72, "door"),
+    },
   ];
 }
 
@@ -288,6 +319,24 @@ function hiddenSaw(id, triggerX, x, y, w, h) {
   };
 }
 
+function movingPlatform(id, x, y, w, h, minX, maxX, speed, offset = 0) {
+  return {
+    id,
+    x,
+    y,
+    w,
+    h,
+    type: "movingPlatform",
+    minX,
+    maxX,
+    speed,
+    offset,
+    direction: 1,
+    dx: 0,
+    dy: 0,
+  };
+}
+
 function cloneRect(item) {
   return { ...item };
 }
@@ -305,6 +354,10 @@ function cloneTrap(trap) {
   };
 }
 
+function cloneMovingPlatform(platform) {
+  return { ...platform, dx: 0, dy: 0 };
+}
+
 function cloneLevel(definition) {
   const level = {
     ...definition,
@@ -313,6 +366,7 @@ function cloneLevel(definition) {
     hazards: definition.hazards.map(cloneRect),
     checkpoints: definition.checkpoints.map(cloneRect),
     traps: definition.traps.map(cloneTrap),
+    movingPlatforms: (definition.movingPlatforms || []).map(cloneMovingPlatform),
     door: cloneRect(definition.door),
     bomb: definition.bomb ? { ...definition.bomb, state: "chase", stateStarted: performance.now() } : null,
     scissors: definition.scissors ? { ...definition.scissors } : null,
@@ -414,6 +468,10 @@ function reset(toCheckpoint = true) {
     trap.armed = false;
     trap.activeAt = 0;
     Object.assign(trap.block, cloneRect(trap.start));
+  }
+  for (const platform of state.level.movingPlatforms) {
+    const base = levelDefinitions[state.levelIndex].movingPlatforms?.find((item) => item.id === platform.id);
+    if (base) Object.assign(platform, cloneMovingPlatform(base));
   }
   for (const hazard of state.level.hazards) {
     if (hazard.type === "spikes") {
@@ -574,6 +632,7 @@ function update(dt, now) {
     playTone(310, 0.04);
   }
 
+  updateMovingPlatforms(step);
   player.vy = Math.min(player.vy + GRAVITY * step, 15);
   move(player.vx * step, 0);
   move(0, player.vy * step);
@@ -690,6 +749,39 @@ function updateTrap(trap, now, step) {
     trap.block.y += trap.vy * step;
   }
 
+}
+
+function updateMovingPlatforms(step) {
+  for (const platform of state.level.movingPlatforms) {
+    const wasRiding = isRidingPlatform(platform);
+    const oldX = platform.x;
+    const oldY = platform.y;
+    platform.x += platform.direction * platform.speed * step;
+    if (platform.x <= platform.minX) {
+      platform.x = platform.minX;
+      platform.direction = 1;
+    } else if (platform.x >= platform.maxX) {
+      platform.x = platform.maxX;
+      platform.direction = -1;
+    }
+    platform.dx = platform.x - oldX;
+    platform.dy = platform.y - oldY;
+    if (wasRiding) {
+      player.x += platform.dx;
+      player.y += platform.dy;
+    }
+  }
+}
+
+function isRidingPlatform(platform) {
+  const feet = player.y + player.h;
+  return (
+    player.vy >= 0 &&
+    feet >= platform.y - 3 &&
+    feet <= platform.y + 8 &&
+    player.x + player.w > platform.x + 3 &&
+    player.x < platform.x + platform.w - 3
+  );
 }
 
 function updateHazard(hazard, now, step) {
@@ -913,7 +1005,7 @@ function activeSolids() {
       return trap.block.h > 0 && trap.block.y < H + 80;
     })
     .map((trap) => trap.block);
-  return state.level.solids.concat(trapSolids);
+  return state.level.solids.concat(state.level.movingPlatforms || [], trapSolids);
 }
 
 function insetBox(box, xInset, yInset, bottomInset = yInset) {
@@ -1054,7 +1146,7 @@ function drawMenu(now) {
   ctx.fillText("CYCLELIFE", W / 2, 182);
   ctx.fillStyle = "#ffd166";
   ctx.font = "18px Courier New";
-  ctx.fillText("4 fases. 1 vida. O cenario nao e seu amigo.", W / 2, 220);
+  ctx.fillText("5 fases. 1 vida. O cenario nao e seu amigo.", W / 2, 220);
   drawMenuChase(now);
 
   for (const button of menuButtons) {
@@ -1172,6 +1264,7 @@ function drawBackground(now) {
 
 function drawTiles() {
   for (const solid of state.level.solids) drawBlock(solid);
+  for (const platform of state.level.movingPlatforms || []) drawMovingPlatform(platform);
   for (const hazard of state.level.hazards) drawHazard(hazard);
   for (const trap of state.level.traps) {
     if (trap.block.type === "falling") drawTrapBlock(trap);
@@ -1203,6 +1296,21 @@ function drawBlock(block) {
   ctx.fillRect(block.x, block.y, block.w, 5);
   ctx.fillStyle = "rgba(0,0,0,0.24)";
   ctx.fillRect(block.x, block.y + block.h - 6, block.w, 6);
+}
+
+function drawMovingPlatform(platform) {
+  if (platformImage.complete && platformImage.naturalWidth) {
+    ctx.drawImage(platformImage, 0, 0, 48, 8, platform.x, platform.y, platform.w, platform.h);
+  } else {
+    ctx.fillStyle = "#3e7f4f";
+    ctx.fillRect(platform.x, platform.y, platform.w, platform.h);
+    ctx.fillStyle = "#6b4a28";
+    ctx.fillRect(platform.x, platform.y + 8, platform.w, platform.h - 8);
+  }
+  ctx.fillStyle = "rgba(0,0,0,0.28)";
+  ctx.fillRect(platform.x + 6, platform.y + platform.h, platform.w - 12, 4);
+  ctx.fillStyle = "rgba(231,237,242,0.24)";
+  ctx.fillRect(platform.minX, platform.y + platform.h + 12, platform.maxX - platform.minX + platform.w, 2);
 }
 
 function drawTiledGround(block, tile) {
@@ -1586,7 +1694,7 @@ function drawDebugLevelMenu() {
 
   ctx.fillStyle = "#8ea2b1";
   ctx.font = "14px Courier New";
-  ctx.fillText("F fecha. Teclas 1-4 tambem carregam a fase.", W / 2, 382);
+  ctx.fillText("F fecha. Teclas 1-5 tambem carregam a fase.", W / 2, 382);
 }
 
 function cycleVolume() {
