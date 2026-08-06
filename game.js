@@ -263,6 +263,8 @@ function makeLevels() {
         rect(360, 496, 2820, 80, "pit"),
       ],
       checkpoints: [
+        rect(1344, 228, 28, 50, "cp", { label: "Air 1" }),
+        rect(2228, 320, 28, 50, "cp", { label: "Air 2" }),
         rect(3228, 408, 28, 50, "cp", { label: "Last Step" }),
       ],
       traps: [
@@ -1320,8 +1322,6 @@ function drawMovingPlatform(platform) {
   }
   ctx.fillStyle = "rgba(0,0,0,0.28)";
   ctx.fillRect(platform.x + 6, platform.y + platform.h, platform.w - 12, 4);
-  ctx.fillStyle = "rgba(231,237,242,0.24)";
-  ctx.fillRect(platform.minX, platform.y + platform.h + 12, platform.maxX - platform.minX + platform.w, 2);
 }
 
 function drawTiledGround(block, tile) {
