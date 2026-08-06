@@ -1078,9 +1078,9 @@ function drawMenu(now) {
 }
 
 function drawMenuChase(now) {
-  const trackX = 280;
-  const trackY = 252;
-  const trackW = 400;
+  const trackX = 80;
+  const trackY = 420;
+  const trackW = 800;
   const cycle = (now * 0.13) % (trackW * 2);
   const goingRight = cycle < trackW;
   const progress = goingRight ? cycle : trackW * 2 - cycle;
@@ -1091,14 +1091,8 @@ function drawMenuChase(now) {
   const hammerY = trackY - 30 + Math.sin(now * 0.011) * 4;
   const swing = Math.sin(now * 0.014) * 0.16 + (goingRight ? -0.1 : 0.1);
 
-  ctx.fillStyle = "rgba(5, 8, 12, 0.4)";
-  ctx.fillRect(trackX - 28, trackY + 34, trackW + 56, 8);
-  ctx.fillStyle = "#2f6f46";
-  ctx.fillRect(trackX - 28, trackY + 29, trackW + 56, 8);
-  ctx.fillStyle = "rgba(255,255,255,0.14)";
-  ctx.fillRect(trackX - 28, trackY + 29, trackW + 56, 2);
-
   ctx.save();
+  ctx.globalAlpha = 0.72;
   ctx.translate(hammerX, hammerY);
   ctx.scale(facing, 1);
   ctx.rotate(swing);
@@ -1113,6 +1107,8 @@ function drawMenuChase(now) {
   ctx.fillRect(47, -20, 6, 28);
   ctx.restore();
 
+  ctx.save();
+  ctx.globalAlpha = 0.82;
   ctx.fillStyle = "rgba(0,0,0,0.28)";
   ctx.fillRect(Math.round(runnerX - 3), Math.round(trackY + 26), 29, 4);
   ctx.fillStyle = "#e7edf2";
@@ -1127,6 +1123,7 @@ function drawMenuChase(now) {
   ctx.fillRect(Math.round(runnerX + 13), Math.round(runnerY + 26), 7, 4 - leg);
   ctx.fillStyle = "#ff3864";
   ctx.fillRect(Math.round(runnerX + 8 - facing * 12), Math.round(runnerY + 12), 14, 4);
+  ctx.restore();
 }
 
 function drawMenuCloud(x, y, scale) {

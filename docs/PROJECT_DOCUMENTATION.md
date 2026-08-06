@@ -72,7 +72,7 @@ Elementos atuais:
 
 - Titulo `CYCLELIFE`.
 - Fundo com nuvens animadas e chao pixel art.
-- Cena animada no centro do menu com o jogador correndo de uma marreta gigante.
+- Cena animada no chao verde existente do menu, em segundo plano, com o jogador correndo de uma marreta gigante.
 - A marreta nunca acerta o jogador nessa animacao; ela apenas reforca o tom do jogo.
 - Botao `Jogar`, que inicia a fase 1.
 - Botao `Volume`, que alterna entre `100%`, `50%` e `0%`.
@@ -376,7 +376,8 @@ Como o projeto e estatico, "build" significa:
 - `57f761b`: tileset aplicado ao chao, fase 4 convertida para tema de neve, neve caindo na tela e cachecol no personagem.
 - `127f3f8`: cachecol limitado a fase 4 e tesoura com golpe de corte quando chega perto do jogador.
 - `c10bfa6`: tecla `W` removida do comando de pulo; pulo permanece em Espaco e seta para cima.
-- Versao atual: menu inicial com animacao do jogador correndo de uma marreta gigante sem ser atingido.
+- `6294d38`: menu inicial com animacao do jogador correndo de uma marreta gigante sem ser atingido.
+- Versao atual: animacao da marreta reposicionada para usar o chao verde existente do menu, como segundo plano atras dos botoes.
 
 ## Proximos caminhos sugeridos
 
