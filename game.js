@@ -232,7 +232,7 @@ function makeLevels() {
         speed: 3.25,
         active: false,
       },
-      door: rect(3358, 386, 44, 72, "door"),
+      door: rect(3304, 386, 44, 72, "door"),
     },
   ];
 }
@@ -242,7 +242,9 @@ function spikePit(x, bottom, w, maxH, period, offset) {
     cycling: true,
     bottom,
     minH: 0,
-    maxH: Math.min(maxH, 46),
+    baseMaxH: maxH,
+    maxH,
+    roll: 1,
     period,
     offset,
   });
@@ -289,7 +291,7 @@ function cloneTrap(trap) {
 }
 
 function cloneLevel(definition) {
-  return {
+  const level = {
     ...definition,
     spawn: { ...definition.spawn },
     solids: definition.solids.map(cloneRect),
@@ -300,6 +302,30 @@ function cloneLevel(definition) {
     bomb: definition.bomb ? { ...definition.bomb, state: "chase", stateStarted: performance.now() } : null,
     scissors: definition.scissors ? { ...definition.scissors } : null,
   };
+  assignSpikeHeights(level);
+  return level;
+}
+
+function assignSpikeHeights(level) {
+  for (const hazard of level.hazards) {
+    if (hazard.type !== "spikes") continue;
+    hazard.roll = 1 + Math.floor(Math.random() * 10);
+    const requested = 34 + hazard.roll * 4;
+    const safe = safeSpikeHeight(hazard);
+    hazard.maxH = Math.min(requested, safe, hazard.baseMaxH || requested);
+  }
+}
+
+function safeSpikeHeight(hazard) {
+  const runSpeed = 5.2;
+  const jumpSpeed = 13.2;
+  const groundY = 458;
+  const margin = 12;
+  const framesToCenter = (hazard.w / 2 + player.w) / runSpeed;
+  const jumpOffset = -jumpSpeed * framesToCenter + 0.5 * GRAVITY * framesToCenter * framesToCenter;
+  const playerBottomAtCenter = groundY + jumpOffset;
+  const clearHeight = hazard.bottom - playerBottomAtCenter - margin;
+  return clamp(Math.floor(clearHeight), 42, 78);
 }
 
 function inputDown(code) {
@@ -392,7 +418,13 @@ function reset(toCheckpoint = true) {
   }
   if (state.level.scissors) {
     const base = levelDefinitions[state.levelIndex].scissors;
-    Object.assign(state.level.scissors, { ...base, active: false });
+    Object.assign(state.level.scissors, {
+      ...base,
+      x: spawn.x - 188,
+      y: clamp(spawn.y - 316, 8, 86),
+      active: false,
+      frame: 0,
+    });
   }
   statusEl.textContent = `${state.level.name} - Checkpoint: ${spawn.label}`;
 }
@@ -534,7 +566,7 @@ function update(dt, now) {
   for (const trap of state.level.traps) {
     if (trap.block.type === "hiddenSaw" && !trap.armed) continue;
     if ((trap.block.type === "falling" || trap.block.type === "hiddenSaw") && overlaps(hurtbox, trapHitbox(trap.block))) {
-      kill(trap.block.type === "falling" ? "crush" : "saw");
+      kill(trap.block.type === "falling" ? "crush" : "spike");
     }
   }
   if (state.level.scissors && overlaps(hurtbox, scissorsHitbox(state.level.scissors))) kill("cut");
@@ -653,14 +685,17 @@ function updateHazard(hazard, now, step) {
 }
 
 function updateBomb(bomb, now, step) {
-  if (!bomb.active && player.x >= bomb.activeAfterX) {
+  const playerCenter = player.x + player.w / 2;
+  const bombCenter = bomb.x + bomb.w / 2;
+  if (!bomb.active && (Math.abs(playerCenter - bombCenter) < 260 || player.x >= bomb.activeAfterX)) {
     bomb.active = true;
     bomb.stateStarted = now;
+    bomb.countdownMs = 5000;
+    state.shake = Math.max(state.shake, 4);
+    playTone(95, 0.08);
   }
   if (!bomb.active) return;
   const elapsed = now - bomb.stateStarted;
-  const playerCenter = player.x + player.w / 2;
-  const bombCenter = bomb.x + bomb.w / 2;
 
   if (bomb.state === "chase") {
     bomb.x += Math.sign(playerCenter - bombCenter) * bomb.speed * step;
@@ -1135,10 +1170,9 @@ function drawDoor(door) {
 }
 
 function drawBomb(bomb) {
-  if (!bomb.active) return;
   const screenX = bomb.x - state.cameraX;
   const offscreen = screenX < -bomb.w || screenX > W;
-  if (offscreen) {
+  if (offscreen && bomb.active) {
     const markerX = clamp(screenX, 18, W - 42) + state.cameraX;
     ctx.fillStyle = "#ff3864";
     ctx.fillRect(markerX, 388, 24, 24);
@@ -1155,18 +1189,32 @@ function drawBomb(bomb) {
     ctx.fillRect(bomb.x + 18, bomb.y + 16, 22, 22);
     return;
   }
-  ctx.fillStyle = "#111820";
-  ctx.fillRect(bomb.x + 7, bomb.y + 12, bomb.w - 14, bomb.h - 8);
-  ctx.fillRect(bomb.x + 14, bomb.y + 2, bomb.w - 28, 14);
-  ctx.fillStyle = "#31475b";
-  ctx.fillRect(bomb.x + 13, bomb.y + 18, bomb.w - 26, bomb.h - 22);
-  ctx.fillStyle = "#ff3864";
-  ctx.fillRect(bomb.x + 24, bomb.y - 8, 10, 12);
-  ctx.fillStyle = "#ffd166";
+
+  const pulse = bomb.active ? Math.floor(Math.sin(performance.now() * 0.015) * 2) : 0;
+  ctx.fillStyle = "rgba(0,0,0,0.3)";
+  ctx.fillRect(bomb.x + 6, bomb.y + bomb.h - 2, bomb.w - 10, 6);
+  ctx.fillStyle = "#0b1118";
+  ctx.fillRect(bomb.x + 14, bomb.y + 2 + pulse, 30, 8);
+  ctx.fillRect(bomb.x + 8, bomb.y + 12 + pulse, 42, 8);
+  ctx.fillRect(bomb.x + 4, bomb.y + 20 + pulse, 50, 28);
+  ctx.fillRect(bomb.x + 10, bomb.y + 48 + pulse, 38, 10);
+  ctx.fillStyle = "#263746";
+  ctx.fillRect(bomb.x + 12, bomb.y + 18 + pulse, 34, 8);
+  ctx.fillRect(bomb.x + 8, bomb.y + 26 + pulse, 42, 18);
+  ctx.fillRect(bomb.x + 14, bomb.y + 44 + pulse, 30, 8);
+  ctx.fillStyle = "#4e6375";
+  ctx.fillRect(bomb.x + 15, bomb.y + 21 + pulse, 12, 7);
+  ctx.fillStyle = bomb.active ? "#ff3864" : "#8ea2b1";
+  ctx.fillRect(bomb.x + 24, bomb.y - 7 + pulse, 10, 12);
+  ctx.fillStyle = bomb.active ? "#ffd166" : "#4e6375";
   ctx.font = "700 20px Courier New";
   ctx.textAlign = "center";
-  const count = Math.ceil(bomb.countdownMs / 1000);
-  ctx.fillText(String(Math.max(1, count)), bomb.x + bomb.w / 2, bomb.y + 44);
+  const label = bomb.active ? String(Math.max(1, Math.ceil(bomb.countdownMs / 1000))) : "!";
+  ctx.fillText(label, bomb.x + bomb.w / 2, bomb.y + 42 + pulse);
+  if (!bomb.active) {
+    ctx.fillStyle = "rgba(231,237,242,0.28)";
+    ctx.fillRect(bomb.x + 10, bomb.y + bomb.h + 8, bomb.w - 20, 3);
+  }
 }
 
 function drawScissors(scissors, now) {

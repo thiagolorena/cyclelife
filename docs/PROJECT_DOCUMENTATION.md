@@ -50,7 +50,7 @@ O jogo usa `requestAnimationFrame`, mas a fisica e os movimentos principais sao 
 Comportamento atual:
 
 - A referencia de gameplay e 60 FPS (`FRAME_MS = 1000 / 60`).
-- Movimento do jogador, gravidade, aceleracao, atrito, nuvens-armadilha, pontes falsas e bomba usam `step = dt / FRAME_MS`.
+- Movimento do jogador, gravidade, aceleracao, atrito, nuvens-armadilha, bomba e tesoura usam `step = dt / FRAME_MS`.
 - Isso evita que navegadores ou monitores em 120 Hz/144 Hz acelerem o jogo.
 - Temporizadores como espinhos ciclicos, contagem da bomba e tempo final continuam baseados em milissegundos reais.
 
@@ -156,6 +156,7 @@ Colisao atual:
 - A colisao de dano usa `playerHitbox()`, um retangulo menor que o sprite.
 - Nuvens, bombas, espinhos, serras e tesoura possuem hitboxes especificas e menores que o desenho total.
 - Nuvens-armadilha nao entram mais na lista de solidos; elas matam por contato e reiniciam no checkpoint sem empurrar o jogador.
+- Espinhos de buraco, serras fixas e serras/espinhos que surgem acima do chao usam a animacao de morte espetada.
 - A intencao e que o jogador morra quando o contato parece visualmente justo, evitando caixas invisiveis largas demais.
 
 Valores atuais:
@@ -190,6 +191,7 @@ Saida:
 - Porta no fim de cada fase.
 - Nas fases 1, 2 e 3, entrar na porta carrega a proxima fase.
 - Na fase 4, entrar na porta conclui o jogo e mostra a tela de vitoria.
+- A porta da fase 4 fica totalmente apoiada na ultima plataforma.
 
 Fases atuais:
 
@@ -260,6 +262,8 @@ Os espinhos fixos no chao foram removidos. Os espinhos atuais ficam nos buracos:
 - Disparam quando o centro do corpo do jogador ja esta sobre a area do buraco.
 - Sobem muito rapido para matar quem atravessar sem respeitar o timing.
 - Sao visualmente menores e mais baixos que nas builds anteriores.
+- A altura maxima de cada conjunto e sorteada ao carregar a fase, usando uma escala interna de 1 a 10.
+- O sorteio e limitado por um calculo simples do arco de pulo correndo com Shift para evitar uma altura impossivel de atravessar.
 - Possuem uma base escura fixa integrada ao fundo do buraco, para nao parecer que uma parte estatica ficou separada de outra que sobe.
 - Permanecem altos por um curto periodo.
 - Recolhem e entram em cooldown antes de poderem disparar de novo.
@@ -268,6 +272,7 @@ Os espinhos fixos no chao foram removidos. Os espinhos atuais ficam nos buracos:
 - O jogador ainda morre se cair no fundo do buraco.
 - A colisao dos espinhos foi reduzida junto com o sprite, usando uma hitbox mais estreita e menos alta.
 - Ao morrer por espinho, o jogador fica espetado por alguns frames, com gotas de sangue, antes de voltar ao checkpoint.
+- Espinhos/serras que aparecem acima da terra tambem usam essa mesma morte espetada.
 
 Espinhos de buraco atuais:
 
@@ -282,7 +287,10 @@ A bomba gigante aparece na fase 3.
 
 Comportamento:
 
-- Ativa quando o jogador avanca pela fase 3.
+- Fica parada e visivel na fase antes de ativar.
+- Tem visual redondo em pixel art, com corpo escuro, brilho e contador no centro.
+- Ativa quando o jogador se aproxima.
+- O contador so comeca depois da ativacao.
 - Depois de ativada, permanece ativa mesmo se o jogador virar de costas ou recuar.
 - Quando fica fora da camera, um indicador na borda mostra sua direcao para nao parecer que desapareceu.
 - Persegue o jogador lentamente.
@@ -300,6 +308,7 @@ Comportamento:
 
 - Fica visivel no ceu assim que a fase comeca.
 - Comeca no canto superior esquerdo, com apenas a ponta aparecendo, para nao bloquear o primeiro pulo.
+- Ao renascer em checkpoint na fase 4, a tesoura volta para a posicao superior esquerda relativa ao personagem.
 - So comeca a perseguir quando o jogador inicia movimento.
 - Tem velocidade igual ao jogador andando.
 - O jogador consegue escapar correndo.
@@ -352,7 +361,8 @@ Como o projeto e estatico, "build" significa:
 - `ebff00d`: loading com logo Silver Feather, hitboxes de dano mais justas, espinhos acionados quando o jogador esta sobre o buraco, quarta fase com tesoura gigante perseguidora e novos FX.
 - `08295de`: menu temporario de teste acionado por `F` para escolher fases imediatamente.
 - `7314bff`: tesoura da fase 4 reposicionada para comecar fora da rota do pulo, chao falso abrindo como buraco real e nuvens corrigidas para matar com respawn limpo.
-- Versao atual: plataformas falsas removidas de todas as fases, espinhos redesenhados menores com base integrada, hitbox reduzida e animacao de morte espetada com gotas.
+- `780d75e`: plataformas falsas removidas de todas as fases, espinhos redesenhados menores com base integrada, hitbox reduzida e animacao de morte espetada com gotas.
+- Versao atual: espinhos com altura aleatoria segura por fase, morte espetada tambem para espinhos acima do chao, porta da fase 4 reposicionada, tesoura reajustada por checkpoint e bomba redonda visivel antes da ativacao.
 
 ## Proximos caminhos sugeridos
 
