@@ -1055,6 +1055,7 @@ function drawMenu(now) {
   ctx.fillStyle = "#ffd166";
   ctx.font = "18px Courier New";
   ctx.fillText("4 fases. 1 vida. O cenario nao e seu amigo.", W / 2, 220);
+  drawMenuChase(now);
 
   for (const button of menuButtons) {
     const hover = pointInRect(pointer, button);
@@ -1074,6 +1075,58 @@ function drawMenu(now) {
     ctx.font = "16px Courier New";
     ctx.fillText(state.menuMessage, W / 2, 488);
   }
+}
+
+function drawMenuChase(now) {
+  const trackX = 280;
+  const trackY = 252;
+  const trackW = 400;
+  const cycle = (now * 0.13) % (trackW * 2);
+  const goingRight = cycle < trackW;
+  const progress = goingRight ? cycle : trackW * 2 - cycle;
+  const runnerX = trackX + progress;
+  const runnerY = trackY + Math.sin(now * 0.018) * 2;
+  const facing = goingRight ? 1 : -1;
+  const hammerX = runnerX - facing * 78;
+  const hammerY = trackY - 30 + Math.sin(now * 0.011) * 4;
+  const swing = Math.sin(now * 0.014) * 0.16 + (goingRight ? -0.1 : 0.1);
+
+  ctx.fillStyle = "rgba(5, 8, 12, 0.4)";
+  ctx.fillRect(trackX - 28, trackY + 34, trackW + 56, 8);
+  ctx.fillStyle = "#2f6f46";
+  ctx.fillRect(trackX - 28, trackY + 29, trackW + 56, 8);
+  ctx.fillStyle = "rgba(255,255,255,0.14)";
+  ctx.fillRect(trackX - 28, trackY + 29, trackW + 56, 2);
+
+  ctx.save();
+  ctx.translate(hammerX, hammerY);
+  ctx.scale(facing, 1);
+  ctx.rotate(swing);
+  ctx.fillStyle = "#6b4a28";
+  ctx.fillRect(-6, -4, 74, 8);
+  ctx.fillStyle = "#3c4652";
+  ctx.fillRect(50, -28, 38, 42);
+  ctx.fillStyle = "#6f8190";
+  ctx.fillRect(54, -24, 30, 8);
+  ctx.fillRect(54, 2, 30, 8);
+  ctx.fillStyle = "#202832";
+  ctx.fillRect(47, -20, 6, 28);
+  ctx.restore();
+
+  ctx.fillStyle = "rgba(0,0,0,0.28)";
+  ctx.fillRect(Math.round(runnerX - 3), Math.round(trackY + 26), 29, 4);
+  ctx.fillStyle = "#e7edf2";
+  ctx.fillRect(Math.round(runnerX), Math.round(runnerY), 22, 28);
+  ctx.fillStyle = "#2e6f95";
+  ctx.fillRect(Math.round(runnerX + 4), Math.round(runnerY + 7), 14, 8);
+  ctx.fillStyle = "#05080c";
+  ctx.fillRect(Math.round(facing > 0 ? runnerX + 15 : runnerX + 4), Math.round(runnerY + 6), 4, 4);
+  ctx.fillStyle = "#ffd166";
+  const leg = Math.floor(now / 90) % 2 === 0 ? 4 : -2;
+  ctx.fillRect(Math.round(runnerX + 3), Math.round(runnerY + 26), 7, 4 + leg);
+  ctx.fillRect(Math.round(runnerX + 13), Math.round(runnerY + 26), 7, 4 - leg);
+  ctx.fillStyle = "#ff3864";
+  ctx.fillRect(Math.round(runnerX + 8 - facing * 12), Math.round(runnerY + 12), 14, 4);
 }
 
 function drawMenuCloud(x, y, scale) {
