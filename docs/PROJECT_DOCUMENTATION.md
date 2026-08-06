@@ -154,6 +154,7 @@ Colisao atual:
 - A colisao fisica com plataformas ainda usa o retangulo completo do jogador para manter pousos consistentes.
 - A colisao de dano usa `playerHitbox()`, um retangulo menor que o sprite.
 - Nuvens, bombas, espinhos, serras e tesoura possuem hitboxes especificas e menores que o desenho total.
+- Nuvens-armadilha nao entram mais na lista de solidos; elas matam por contato e reiniciam no checkpoint sem empurrar o jogador.
 - A intencao e que o jogador morra quando o contato parece visualmente justo, evitando caixas invisiveis largas demais.
 
 Valores atuais:
@@ -251,8 +252,9 @@ Armadilhas do tipo `hiddenSaw`:
 Armadilhas do tipo `crumbly`:
 
 - Parecem chao normal.
-- Ao ativar, descem rapidamente e perdem altura.
-- Criam buracos inesperados.
+- Ao ativar, deixam de ser solidas.
+- A abertura e animada em duas metades que se separam, formando um buraco visual claro.
+- Criam buracos inesperados sem parecer que o bloco apenas derreteu ou caiu inteiro.
 
 ### Espinhos de buraco
 
@@ -297,6 +299,7 @@ A tesoura gigante aparece na fase 4.
 Comportamento:
 
 - Fica visivel no ceu assim que a fase comeca.
+- Comeca no canto superior esquerdo, com apenas a ponta aparecendo, para nao bloquear o primeiro pulo.
 - So comeca a perseguir quando o jogador inicia movimento.
 - Tem velocidade igual ao jogador andando.
 - O jogador consegue escapar correndo.
@@ -346,7 +349,8 @@ Como o projeto e estatico, "build" significa:
 - `ae628d1`: bomba final permanece visivel/indicada depois de ativada e tela final mostra mortes e tempo total.
 - `3f67913`: normalizacao da fisica por tempo para manter a mesma velocidade em navegadores/monitores com FPS diferente.
 - `ebff00d`: loading com logo Silver Feather, hitboxes de dano mais justas, espinhos acionados quando o jogador esta sobre o buraco, quarta fase com tesoura gigante perseguidora e novos FX.
-- Versao atual: menu temporario de teste acionado por `F` para escolher fases imediatamente.
+- `08295de`: menu temporario de teste acionado por `F` para escolher fases imediatamente.
+- Versao atual: tesoura da fase 4 reposicionada para comecar fora da rota do pulo, chao falso abrindo como buraco real e nuvens corrigidas para matar com respawn limpo.
 
 ## Proximos caminhos sugeridos
 

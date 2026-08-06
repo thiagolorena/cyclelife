@@ -230,8 +230,8 @@ function makeLevels() {
         crumbly("stage4-floor-b", 2870, 2950, 458, 126, 38),
       ],
       scissors: {
-        x: 258,
-        y: 86,
+        x: -170,
+        y: 10,
         w: 148,
         h: 88,
         speed: 3.25,
@@ -300,6 +300,7 @@ function cloneTrap(trap) {
     vy: 0,
     armed: false,
     activeAt: 0,
+    openProgress: 0,
   };
 }
 
@@ -378,7 +379,7 @@ function reset(toCheckpoint = true) {
   state.triggered.clear();
   state.shake = 8;
   state.flash = 0;
-  state.particles = [];
+  if (!toCheckpoint) state.particles = [];
 
   for (const cp of state.level.checkpoints) cp.exploded = false;
   for (const trap of state.level.traps) {
@@ -386,6 +387,7 @@ function reset(toCheckpoint = true) {
     trap.vy = 0;
     trap.armed = false;
     trap.activeAt = 0;
+    trap.openProgress = 0;
     Object.assign(trap.block, cloneRect(trap.start));
   }
   for (const hazard of state.level.hazards) {
@@ -518,7 +520,9 @@ function update(dt, now) {
   }
   for (const trap of state.level.traps) {
     if (trap.block.type === "hiddenSaw" && !trap.armed) continue;
-    if ((trap.block.type === "falling" || trap.block.type === "hiddenSaw") && overlaps(hurtbox, trapHitbox(trap.block))) kill();
+    if ((trap.block.type === "falling" || trap.block.type === "hiddenSaw") && overlaps(hurtbox, trapHitbox(trap.block))) {
+      kill(trap.block.type === "falling" ? "crush" : "saw");
+    }
   }
   if (state.level.scissors && overlaps(hurtbox, scissorsHitbox(state.level.scissors))) kill("cut");
   if (player.y > H + 120) kill("fall");
@@ -581,11 +585,12 @@ function updateDebugLevelMenuInput() {
 }
 
 function updateTrap(trap, now, step) {
-  if (!state.triggered.has(trap.id) && overlaps(player, trap.trigger)) {
+  if (!state.triggered.has(trap.id) && overlaps(playerHitbox(), trap.trigger)) {
     state.triggered.add(trap.id);
     trap.activeAt = now + trap.delay;
     trap.armed = true;
     state.shake = 6;
+    if (trap.block.type === "crumbly") spawnParticles(trap.block.x + trap.block.w / 2, trap.block.y + 8, "#3e7f4f", 14, 1);
   }
 
   if (!trap.armed || now < trap.activeAt) return;
@@ -601,8 +606,8 @@ function updateTrap(trap, now, step) {
   }
 
   if (trap.block.type === "crumbly") {
-    trap.block.y += 7 * step;
-    trap.block.h = Math.max(0, trap.block.h - 1 * step);
+    trap.openProgress = Math.min(1, (trap.openProgress || 0) + 0.055 * step);
+    trap.block.h = trap.start.h;
   }
 }
 
@@ -716,8 +721,9 @@ function updateScissors(scissors, step) {
 }
 
 function spawnParticles(x, y, color, amount, power = 1) {
+  const created = [];
   for (let i = 0; i < amount; i += 1) {
-    state.particles.push({
+    const particle = {
       x,
       y,
       vx: (Math.random() - 0.5) * 4 * power,
@@ -726,21 +732,25 @@ function spawnParticles(x, y, color, amount, power = 1) {
       maxLife: 42,
       size: 2 + Math.random() * 4,
       color,
-    });
+    };
+    state.particles.push(particle);
+    created.push(particle);
   }
   if (state.particles.length > 180) state.particles.splice(0, state.particles.length - 180);
+  return created;
 }
 
 function spawnDeathFx(reason) {
   const cx = player.x + player.w / 2;
   const cy = player.y + player.h / 2;
   const color = reason === "cut" ? "#e7edf2" : reason === "fall" ? "#8ea2b1" : "#ff3864";
-  spawnParticles(cx, cy, color, reason === "cut" ? 34 : 24, reason === "cut" ? 2.2 : 1.7);
+  const created = spawnParticles(cx, cy, color, reason === "cut" ? 34 : 24, reason === "cut" ? 2.2 : 1.7);
   if (reason === "cut") {
-    spawnParticles(cx - 4, cy, "#ff3864", 12, 1.4);
+    created.push(...spawnParticles(cx - 4, cy, "#ff3864", 12, 1.4));
     state.flash = 20;
     state.shake = 20;
   }
+  return created;
 }
 
 function updateParticles(step) {
@@ -777,7 +787,11 @@ function move(dx, dy) {
 
 function activeSolids() {
   const trapSolids = state.level.traps
-    .filter((trap) => trap.block.type !== "hiddenSaw" && trap.block.h > 0 && trap.block.y < H + 80)
+    .filter((trap) => {
+      if (trap.block.type === "hiddenSaw" || trap.block.type === "falling") return false;
+      if (trap.block.type === "crumbly" && trap.armed && performance.now() >= trap.activeAt) return false;
+      return trap.block.h > 0 && trap.block.y < H + 80;
+    })
     .map((trap) => trap.block);
   return state.level.solids.concat(trapSolids);
 }
@@ -985,16 +999,30 @@ function drawBackground(now) {
 }
 
 function drawTiles() {
-  for (const solid of activeSolids()) drawBlock(solid);
+  for (const solid of state.level.solids) drawBlock(solid);
   for (const hazard of state.level.hazards) drawHazard(hazard);
   for (const trap of state.level.traps) {
+    if (trap.block.type === "falling" || trap.block.type === "crumbly") drawTrapBlock(trap);
     if (trap.block.type === "hiddenSaw" && trap.armed) drawHazard(trap.block);
   }
 }
 
-function drawBlock(block) {
+function drawTrapBlock(trap) {
+  if (trap.block.type === "falling") {
+    drawCloudTrap(trap.block);
+    return;
+  }
+  drawBlock(trap.block, trap.openProgress || 0);
+}
+
+function drawBlock(block, openProgress = 0) {
   if (block.type === "falling") {
     drawCloudTrap(block);
+    return;
+  }
+
+  if (block.type === "crumbly" && openProgress > 0) {
+    drawOpeningFloor(block, openProgress);
     return;
   }
 
@@ -1008,6 +1036,28 @@ function drawBlock(block) {
     ctx.fillStyle = "#261f1b";
     for (let x = block.x + 8; x < block.x + block.w; x += 26) ctx.fillRect(x, block.y + 13, 10, 4);
   }
+}
+
+function drawOpeningFloor(block, progress) {
+  const eased = progress * progress * (3 - 2 * progress);
+  const gap = eased * (block.w * 0.54);
+  const drop = eased * 18;
+  const half = block.w / 2;
+
+  ctx.fillStyle = "#05080c";
+  ctx.fillRect(block.x, block.y + 6, block.w, block.h + 44);
+  ctx.fillStyle = "#3e7f4f";
+  ctx.fillRect(block.x - gap, block.y + drop, half, block.h);
+  ctx.fillRect(block.x + half + gap, block.y + drop, half, block.h);
+  ctx.fillStyle = "rgba(255,255,255,0.16)";
+  ctx.fillRect(block.x - gap, block.y + drop, half, 5);
+  ctx.fillRect(block.x + half + gap, block.y + drop, half, 5);
+  ctx.fillStyle = "rgba(0,0,0,0.28)";
+  ctx.fillRect(block.x - gap, block.y + block.h - 6 + drop, half, 6);
+  ctx.fillRect(block.x + half + gap, block.y + block.h - 6 + drop, half, 6);
+  ctx.fillStyle = "#261f1b";
+  for (let x = block.x + 8 - gap; x < block.x + half - 10 - gap; x += 26) ctx.fillRect(x, block.y + 13 + drop, 10, 4);
+  for (let x = block.x + half + 8 + gap; x < block.x + block.w - 10 + gap; x += 26) ctx.fillRect(x, block.y + 13 + drop, 10, 4);
 }
 
 function drawCloudTrap(block) {
