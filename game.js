@@ -270,13 +270,13 @@ function makeLevels() {
         hiddenSaw("patience-saw-a", 2390, 2480, 220, 92, 28),
       ],
       movingPlatforms: [
-        movingPlatform("mp-1", 430, 410, 112, 22, 430, 720, 0.9),
-        movingPlatform("mp-2", 820, 348, 112, 22, 820, 1120, 0.78, 900),
-        movingPlatform("mp-3", 1210, 286, 112, 22, 1210, 1510, 0.72, 500),
-        movingPlatform("mp-4", 1660, 316, 112, 22, 1660, 1960, 0.84, 1200),
-        movingPlatform("mp-5", 2050, 378, 112, 22, 2050, 2360, 0.76, 300),
-        movingPlatform("mp-6", 2440, 318, 112, 22, 2440, 2770, 0.88, 700),
-        movingPlatform("mp-7", 2860, 408, 112, 22, 2860, 3110, 0.7, 1100),
+        movingPlatform("mp-1", 430, 410, 112, 22, 430, 720, 0.9, 1),
+        movingPlatform("mp-2", 1120, 348, 112, 22, 820, 1120, 0.78, -1),
+        movingPlatform("mp-3", 1210, 286, 112, 22, 1210, 1510, 0.72, 1),
+        movingPlatform("mp-4", 1960, 316, 112, 22, 1660, 1960, 0.84, -1),
+        movingPlatform("mp-5", 2050, 378, 112, 22, 2050, 2360, 0.76, 1),
+        movingPlatform("mp-6", 2770, 318, 112, 22, 2440, 2770, 0.88, -1),
+        movingPlatform("mp-7", 2860, 408, 112, 22, 2860, 3110, 0.7, 1),
       ],
       door: rect(3396, 386, 44, 72, "door"),
     },
@@ -319,7 +319,7 @@ function hiddenSaw(id, triggerX, x, y, w, h) {
   };
 }
 
-function movingPlatform(id, x, y, w, h, minX, maxX, speed, offset = 0) {
+function movingPlatform(id, x, y, w, h, minX, maxX, speed, direction = 1) {
   return {
     id,
     x,
@@ -330,8 +330,7 @@ function movingPlatform(id, x, y, w, h, minX, maxX, speed, offset = 0) {
     minX,
     maxX,
     speed,
-    offset,
-    direction: 1,
+    direction,
     dx: 0,
     dy: 0,
   };

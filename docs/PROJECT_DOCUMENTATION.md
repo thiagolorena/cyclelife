@@ -215,6 +215,7 @@ Comportamento:
 - O jogador nasce em uma plataforma fixa.
 - A frente existe um grande buraco e varias plataformas que andam sozinhas.
 - O jogador precisa esperar cada plataforma chegar em uma posicao boa antes de pular.
+- As plataformas comecam em sentidos alternados, evitando que todas se afastem juntas e travem a progressao.
 - As plataformas carregam o jogador enquanto ele esta em cima delas.
 - O visual usa a primeira linha verde do sprite `platforms.png`.
 - Existe um checkpoint seguro perto da plataforma final.
@@ -394,7 +395,8 @@ Como o projeto e estatico, "build" significa:
 - `c10bfa6`: tecla `W` removida do comando de pulo; pulo permanece em Espaco e seta para cima.
 - `6294d38`: menu inicial com animacao do jogador correndo de uma marreta gigante sem ser atingido.
 - `cf2cbf7`: animacao da marreta reposicionada para usar o chao verde existente do menu, como segundo plano atras dos botoes.
-- Versao atual: quinta fase adicionada com plataformas moveis automaticas e sprite dedicado.
+- `9a5a1f5`: quinta fase adicionada com plataformas moveis automaticas e sprite dedicado.
+- Versao atual: plataformas moveis da fase 5 agora iniciam em sentidos alternados para abrir janelas reais de pulo.
 
 ## Proximos caminhos sugeridos
 
