@@ -354,7 +354,15 @@ function cloneTrap(trap) {
 }
 
 function cloneMovingPlatform(platform) {
-  return { ...platform, dx: 0, dy: 0 };
+  const speedRoll = 0.68 + Math.random() * 0.64;
+  return {
+    ...platform,
+    baseSpeed: platform.speed,
+    speed: Number((platform.speed * speedRoll).toFixed(3)),
+    speedRoll,
+    dx: 0,
+    dy: 0,
+  };
 }
 
 function cloneLevel(definition) {
@@ -468,9 +476,11 @@ function reset(toCheckpoint = true) {
     trap.activeAt = 0;
     Object.assign(trap.block, cloneRect(trap.start));
   }
-  for (const platform of state.level.movingPlatforms) {
-    const base = levelDefinitions[state.levelIndex].movingPlatforms?.find((item) => item.id === platform.id);
-    if (base) Object.assign(platform, cloneMovingPlatform(base));
+  if (!toCheckpoint) {
+    for (const platform of state.level.movingPlatforms) {
+      const base = levelDefinitions[state.levelIndex].movingPlatforms?.find((item) => item.id === platform.id);
+      if (base) Object.assign(platform, cloneMovingPlatform(base));
+    }
   }
   for (const hazard of state.level.hazards) {
     if (hazard.type === "spikes") {
@@ -599,6 +609,7 @@ function update(dt, now) {
     return;
   }
   if (state.deathAnimation) {
+    updateMovingPlatforms(step);
     updateParticles(step);
     if (now >= state.deathAnimation.respawnAt) {
       reset(true);
