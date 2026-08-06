@@ -216,7 +216,8 @@ Comportamento:
 - A frente existe um grande buraco e varias plataformas que andam sozinhas.
 - O jogador precisa esperar cada plataforma chegar em uma posicao boa antes de pular.
 - As plataformas comecam em sentidos alternados, evitando que todas se afastem juntas e travem a progressao.
-- Cada plataforma sorteia uma velocidade propria quando a fase carrega; algumas ficam mais lentas e outras mais rapidas.
+- Cada plataforma sorteia uma velocidade propria quando a fase carrega; o sorteio usa faixas lentas, medias e bem rapidas para ficar perceptivel.
+- Esse sorteio acontece somente uma vez no load do nivel.
 - Ao morrer, as plataformas nao voltam para a posicao inicial e nao sorteiam nova velocidade.
 - Durante o respawn, as plataformas continuam no fluxo atual da fase.
 - As plataformas carregam o jogador enquanto ele esta em cima delas.
@@ -400,7 +401,8 @@ Como o projeto e estatico, "build" significa:
 - `cf2cbf7`: animacao da marreta reposicionada para usar o chao verde existente do menu, como segundo plano atras dos botoes.
 - `9a5a1f5`: quinta fase adicionada com plataformas moveis automaticas e sprite dedicado.
 - `1f1c532`: plataformas moveis da fase 5 agora iniciam em sentidos alternados para abrir janelas reais de pulo.
-- Versao atual: plataformas moveis da fase 5 com velocidades randomicas por carregamento e sem reset de fluxo apos morte.
+- `75635d9`: plataformas moveis da fase 5 com velocidades randomicas por carregamento e sem reset de fluxo apos morte.
+- Versao atual: faixa de velocidade das plataformas moveis ampliada para deixar plataformas rapidas claramente perceptiveis, mantendo sorteio apenas no load do nivel.
 
 ## Proximos caminhos sugeridos
 

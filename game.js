@@ -354,7 +354,8 @@ function cloneTrap(trap) {
 }
 
 function cloneMovingPlatform(platform) {
-  const speedRoll = 0.68 + Math.random() * 0.64;
+  const roll = Math.random();
+  const speedRoll = roll < 0.28 ? 0.55 + Math.random() * 0.22 : roll < 0.68 ? 0.95 + Math.random() * 0.25 : 1.65 + Math.random() * 0.55;
   return {
     ...platform,
     baseSpeed: platform.speed,
