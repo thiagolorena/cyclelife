@@ -317,7 +317,9 @@ Comportamento:
 - Tem velocidade igual ao jogador andando.
 - O jogador consegue escapar correndo.
 - A tesoura ajusta levemente a altura para perseguir o jogador sem sumir da leitura da fase.
-- Se alcancar o jogador, ativa morte especial de corte com particulas, flash e tremor.
+- Quando chega perto o suficiente do jogador, entra em estado de golpe.
+- No golpe, a tesoura desce e fecha as laminas em uma animacao curta.
+- O golpe corta o personagem ao meio, com particulas, sangue, flash e tremor antes do respawn.
 
 ### Buracos
 
@@ -334,7 +336,7 @@ O jogo possui:
 - Flash vermelho em explosoes e eventos perigosos.
 - Particulas em pulo, pouso, espinhos, mortes, explosoes e corte da tesoura.
 - Neve caindo na tela durante a fase 4.
-- Cachecol no personagem, mais destacado na fase de neve.
+- Cachecol no personagem apenas na fase 4, por ser a fase de neve.
 - Animacao especial de morte espetada nos espinhos.
 - Jogador com desenho suavizado, sombra e leve squash/stretch.
 - HUD com checkpoint atual, tempo e contador de mortes.
@@ -369,7 +371,8 @@ Como o projeto e estatico, "build" significa:
 - `7314bff`: tesoura da fase 4 reposicionada para comecar fora da rota do pulo, chao falso abrindo como buraco real e nuvens corrigidas para matar com respawn limpo.
 - `780d75e`: plataformas falsas removidas de todas as fases, espinhos redesenhados menores com base integrada, hitbox reduzida e animacao de morte espetada com gotas.
 - `dacb88b`: espinhos com altura aleatoria segura por fase, morte espetada tambem para espinhos acima do chao, porta da fase 4 reposicionada, tesoura reajustada por checkpoint e bomba redonda visivel antes da ativacao.
-- Versao atual: tileset aplicado ao chao, fase 4 convertida para tema de neve, neve caindo na tela e cachecol no personagem.
+- `57f761b`: tileset aplicado ao chao, fase 4 convertida para tema de neve, neve caindo na tela e cachecol no personagem.
+- Versao atual: cachecol limitado a fase 4 e tesoura com golpe de corte quando chega perto do jogador.
 
 ## Proximos caminhos sugeridos
 

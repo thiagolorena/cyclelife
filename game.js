@@ -438,6 +438,8 @@ function reset(toCheckpoint = true) {
       x: spawn.x - 188,
       y: clamp(spawn.y - 316, 8, 86),
       active: false,
+      attackState: "idle",
+      attackStarted: 0,
       frame: 0,
     });
   }
@@ -450,6 +452,10 @@ function kill(reason = "death") {
   deathsEl.textContent = `Deaths: ${state.deaths}`;
   if (reason === "spike") {
     startSpikeDeath();
+    return;
+  }
+  if (reason === "cut") {
+    startCutDeath();
     return;
   }
   spawnDeathFx(reason);
@@ -473,6 +479,26 @@ function startSpikeDeath() {
   state.shake = 13;
   spawnBloodDrops(player.x + player.w / 2, player.y + player.h * 0.52, 18);
   playTone(120, 0.12);
+}
+
+function startCutDeath() {
+  const now = performance.now();
+  player.vx = 0;
+  player.vy = 0;
+  player.deadUntil = now + 720;
+  state.deathAnimation = {
+    reason: "cut",
+    x: player.x,
+    y: player.y,
+    started: now,
+    respawnAt: now + 720,
+  };
+  state.flash = 18;
+  state.shake = 18;
+  spawnBloodDrops(player.x + player.w / 2, player.y + player.h * 0.48, 16);
+  spawnParticles(player.x + player.w / 2, player.y + player.h / 2, "#e7edf2", 22, 1.7);
+  playTone(180, 0.06);
+  playTone(70, 0.12);
 }
 
 function completeLevel() {
@@ -571,7 +597,7 @@ function update(dt, now) {
   for (const trap of state.level.traps) updateTrap(trap, now, step);
   for (const hazard of state.level.hazards) updateHazard(hazard, now, step);
   if (state.level.bomb) updateBomb(state.level.bomb, now, step);
-  if (state.level.scissors) updateScissors(state.level.scissors, step);
+  if (state.level.scissors) updateScissors(state.level.scissors, now, step);
 
   const hurtbox = playerHitbox();
   for (const hazard of state.level.hazards) {
@@ -761,21 +787,43 @@ function explodeBomb(bomb, now, nextState) {
   }
 }
 
-function updateScissors(scissors, step) {
+function updateScissors(scissors, now, step) {
   const moving = Math.abs(player.vx) > 0.35 || inputDown("ArrowLeft") || inputDown("ArrowRight") || inputDown("KeyA") || inputDown("KeyD");
   if (!scissors.active && moving) {
     scissors.active = true;
+    scissors.attackState = "chase";
     scissors.startedX = player.x;
     playTone(420, 0.05);
   }
   if (!scissors.active) return;
 
+  if (scissors.attackState === "slash") {
+    const elapsed = now - scissors.attackStarted;
+    const targetX = player.x + player.w / 2 - scissors.w / 2;
+    const targetY = player.y - 34;
+    scissors.x += (targetX - scissors.x) * Math.min(1, 0.22 * step);
+    scissors.y += (targetY - scissors.y) * Math.min(1, 0.24 * step);
+    scissors.frame = (scissors.frame || 0) + 0.55 * step;
+    state.shake = Math.max(state.shake, 8);
+    if (elapsed > 180 && !state.deathAnimation) kill("cut");
+    return;
+  }
+
   const targetX = player.x + player.w / 2 - scissors.w * 0.42;
   const direction = Math.sign(targetX - scissors.x) || 1;
   scissors.x += direction * scissors.speed * step;
-  const targetY = clamp(player.y - 96, 76, 334);
+  const targetY = clamp(player.y - 76, 52, 334);
   scissors.y += (targetY - scissors.y) * Math.min(1, 0.025 * step);
   scissors.frame = (scissors.frame || 0) + 0.18 * step;
+
+  const dx = Math.abs(scissors.x + scissors.w / 2 - (player.x + player.w / 2));
+  const dy = Math.abs(scissors.y + scissors.h / 2 - (player.y + player.h / 2));
+  if (dx < 62 && dy < 106) {
+    scissors.attackState = "slash";
+    scissors.attackStarted = now;
+    state.flash = Math.max(state.flash, 8);
+    playTone(520, 0.05);
+  }
 }
 
 function spawnParticles(x, y, color, amount, power = 1) {
@@ -1255,7 +1303,10 @@ function drawBomb(bomb) {
 }
 
 function drawScissors(scissors, now) {
-  const open = 12 + Math.sin((scissors.frame || now * 0.004) * 1.8) * (scissors.active ? 12 : 5);
+  const slashing = scissors.attackState === "slash";
+  const open = slashing
+    ? Math.max(2, 26 - (now - scissors.attackStarted) * 0.12)
+    : 12 + Math.sin((scissors.frame || now * 0.004) * 1.8) * (scissors.active ? 12 : 5);
   const cx = scissors.x + scissors.w / 2;
   const cy = scissors.y + scissors.h / 2;
   const dir = scissors.x < player.x ? 1 : -1;
@@ -1263,7 +1314,7 @@ function drawScissors(scissors, now) {
   ctx.save();
   ctx.translate(cx, cy);
   ctx.scale(dir, 1);
-  ctx.fillStyle = scissors.active ? "#e7edf2" : "#9fb7c6";
+  ctx.fillStyle = slashing ? "#ffffff" : scissors.active ? "#e7edf2" : "#9fb7c6";
   ctx.fillRect(-12, -6, 104, 10);
   ctx.fillRect(-12, 6, 104, 10);
   ctx.fillStyle = "#c0ccd6";
@@ -1281,7 +1332,7 @@ function drawScissors(scissors, now) {
   ctx.fillStyle = "#ffd166";
   ctx.fillRect(-10, -10, 14, 14);
   ctx.fillStyle = "#ff3864";
-  if (scissors.active) ctx.fillRect(96, -2, 10, 8);
+  if (scissors.active) ctx.fillRect(96, -2, slashing ? 18 : 10, 8);
   ctx.restore();
 
   if (!scissors.active) {
@@ -1293,6 +1344,10 @@ function drawScissors(scissors, now) {
 function drawPlayer(now) {
   if (state.deathAnimation?.reason === "spike") {
     drawImpaledPlayer(now);
+    return;
+  }
+  if (state.deathAnimation?.reason === "cut") {
+    drawCutPlayer(now);
     return;
   }
   const blink = player.deadUntil > now && Math.floor(now / 60) % 2 === 0;
@@ -1317,14 +1372,36 @@ function drawPlayer(now) {
 }
 
 function drawPlayerScarf(px, py, now) {
-  const wind = state.levelIndex === 3 ? 2 : 0;
+  if (state.levelIndex !== 3) return;
+  const wind = 2;
   const tailDir = -player.facing;
   const flutter = Math.round(Math.sin(now * 0.018 + player.frame) * 2);
-  ctx.fillStyle = state.levelIndex === 3 ? "#e63946" : "#ff3864";
+  ctx.fillStyle = "#e63946";
   ctx.fillRect(Math.round(px + 3), Math.round(py + 11), 16, 5);
   ctx.fillRect(Math.round(px + 9 + tailDir * 10), Math.round(py + 12 + flutter), 12 + wind, 4);
   ctx.fillStyle = "#ffd166";
   ctx.fillRect(Math.round(px + 8), Math.round(py + 12), 3, 3);
+}
+
+function drawCutPlayer(now) {
+  const death = state.deathAnimation;
+  const elapsed = now - death.started;
+  const split = Math.min(16, elapsed * 0.035);
+  const fall = Math.min(12, elapsed * 0.018);
+  const px = death.x;
+  const py = death.y;
+
+  ctx.fillStyle = "rgba(0,0,0,0.28)";
+  ctx.fillRect(Math.round(px - 2), Math.round(py + player.h + 6), player.w + 8, 4);
+  ctx.fillStyle = "#e7edf2";
+  ctx.fillRect(Math.round(px - split), Math.round(py + fall), player.w, 13);
+  ctx.fillRect(Math.round(px + split), Math.round(py + 14 + fall), player.w, 14);
+  ctx.fillStyle = "#2e6f95";
+  ctx.fillRect(Math.round(px + 4 - split), Math.round(py + 7 + fall), 14, 5);
+  ctx.fillRect(Math.round(px + 4 + split), Math.round(py + 16 + fall), 14, 5);
+  ctx.fillStyle = "#b5122a";
+  ctx.fillRect(Math.round(px + 3), Math.round(py + 13 + fall), 17, 4);
+  ctx.fillRect(Math.round(px + 8), Math.round(py + 18 + fall), 7, 5);
 }
 
 function drawImpaledPlayer(now) {
