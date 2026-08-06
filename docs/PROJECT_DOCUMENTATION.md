@@ -117,11 +117,24 @@ Teclado:
 - Correr: Shift.
 - Reiniciar fase: R.
 - Pausar/continuar: ESC.
+- Menu temporario de teste: F.
 - Menu: clique em `Jogar`, `Volume` ou `Sair`.
 
 Toque:
 
 - Botoes na tela para esquerda, direita, pulo e corrida em dispositivos touch.
+
+## Menu temporario de teste
+
+Existe um menu temporario para acelerar testes de fase. Ele deve ser removido antes de uma versao final publica.
+
+Comportamento atual:
+
+- Apertar `F` abre ou fecha o seletor de fases.
+- Enquanto o seletor esta aberto, o gameplay fica congelado.
+- Clicar em `Fase 1`, `Fase 2`, `Fase 3` ou `Fase 4` carrega a fase imediatamente.
+- Com o seletor aberto, as teclas `1`, `2`, `3` e `4` tambem carregam a fase correspondente.
+- Ao escolher uma fase, o contador de mortes e o cronometro sao reiniciados para facilitar teste isolado.
 
 ## Jogador e colisao
 
@@ -332,7 +345,8 @@ Como o projeto e estatico, "build" significa:
 - `d166137`: nomes publicos das fases sem subtitulo revelador, pause com ESC e dica flutuante inicial.
 - `ae628d1`: bomba final permanece visivel/indicada depois de ativada e tela final mostra mortes e tempo total.
 - `3f67913`: normalizacao da fisica por tempo para manter a mesma velocidade em navegadores/monitores com FPS diferente.
-- Versao atual: loading com logo Silver Feather, hitboxes de dano mais justas, espinhos acionados quando o jogador esta sobre o buraco, quarta fase com tesoura gigante perseguidora e novos FX.
+- `ebff00d`: loading com logo Silver Feather, hitboxes de dano mais justas, espinhos acionados quando o jogador esta sobre o buraco, quarta fase com tesoura gigante perseguidora e novos FX.
+- Versao atual: menu temporario de teste acionado por `F` para escolher fases imediatamente.
 
 ## Proximos caminhos sugeridos
 

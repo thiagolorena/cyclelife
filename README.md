@@ -15,6 +15,7 @@ Controls:
 - Run: Shift
 - Restart: R
 - Pause: Esc
+- Temporary test level menu: F
 - Menu: click Jogar, Sair, or Volume
 
 ## Project shape

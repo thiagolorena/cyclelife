@@ -54,6 +54,7 @@ const state = {
   shake: 0,
   flash: 0,
   particles: [],
+  debugLevelMenu: false,
   triggered: new Set(),
 };
 
@@ -327,16 +328,30 @@ function setHudVisible(visible) {
   deathsEl.style.visibility = visibility;
 }
 
-function startGame() {
+function startGame(levelIndex = 0) {
   state.mode = "game";
   state.won = false;
   state.deaths = 0;
   state.finalStats = null;
-  state.levelIndex = 0;
+  state.debugLevelMenu = false;
+  state.levelIndex = levelIndex;
   state.startTime = performance.now();
   deathsEl.textContent = "Deaths: 0";
-  loadLevel(0);
+  loadLevel(levelIndex);
   playTone(220, 0.08);
+}
+
+function jumpToLevel(index) {
+  const safeIndex = clamp(index, 0, levelDefinitions.length - 1);
+  state.mode = "game";
+  state.won = false;
+  state.finalStats = null;
+  state.debugLevelMenu = false;
+  state.startTime = performance.now();
+  state.deaths = 0;
+  deathsEl.textContent = "Deaths: 0";
+  loadLevel(safeIndex);
+  playTone(360 + safeIndex * 40, 0.06);
 }
 
 function loadLevel(index) {
@@ -426,6 +441,10 @@ function update(dt, now) {
   if (state.mode === "loading") {
     if (now - state.loadingStarted >= 3000) state.mode = "menu";
     updateParticles(step);
+    return;
+  }
+  if (state.debugLevelMenu) {
+    updateDebugLevelMenuInput();
     return;
   }
   if (state.mode === "menu" || state.mode === "closed") {
@@ -537,6 +556,28 @@ function updatePauseInput() {
   state.mode = "menu";
   state.menuMessage = "";
   playTone(140, 0.08);
+}
+
+function debugLevelButtons() {
+  const width = 118;
+  const gap = 14;
+  const total = levelDefinitions.length * width + (levelDefinitions.length - 1) * gap;
+  const startX = W / 2 - total / 2;
+  return levelDefinitions.map((level, index) => ({
+    id: index,
+    label: level.name,
+    x: startX + index * (width + gap),
+    y: 292,
+    w: width,
+    h: 48,
+  }));
+}
+
+function updateDebugLevelMenuInput() {
+  if (!pointer.clicked) return;
+  const clicked = debugLevelButtons().find((button) => pointInRect(pointer, button));
+  pointer.clicked = false;
+  if (clicked) jumpToLevel(clicked.id);
 }
 
 function updateTrap(trap, now, step) {
@@ -799,10 +840,12 @@ function draw(now) {
   }
   if (state.mode === "menu" || state.mode === "closed") {
     drawMenu(now);
+    drawDebugLevelMenu();
     return;
   }
   if (state.mode === "win") {
     drawWin(now);
+    drawDebugLevelMenu();
     return;
   }
 
@@ -821,6 +864,7 @@ function draw(now) {
   drawStartHint(now);
   ctx.restore();
   drawOverlay();
+  drawDebugLevelMenu();
 }
 
 function drawLoading(now) {
@@ -1176,6 +1220,36 @@ function drawOverlay() {
   }
 }
 
+function drawDebugLevelMenu() {
+  if (!state.debugLevelMenu) return;
+  ctx.fillStyle = "rgba(5, 8, 12, 0.82)";
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = "#ffd166";
+  ctx.font = "700 16px Courier New";
+  ctx.textAlign = "center";
+  ctx.fillText("MENU TEMPORARIO DE TESTE", W / 2, 216);
+  ctx.fillStyle = "#e7edf2";
+  ctx.font = "700 32px Courier New";
+  ctx.fillText("ESCOLHER FASE", W / 2, 256);
+
+  for (const button of debugLevelButtons()) {
+    const hover = pointInRect(pointer, button);
+    const active = state.mode === "game" && state.levelIndex === button.id;
+    ctx.fillStyle = hover ? "#ffd166" : active ? "#2e6f95" : "#121820";
+    ctx.fillRect(button.x, button.y, button.w, button.h);
+    ctx.strokeStyle = hover ? "#e7edf2" : active ? "#a6ff3d" : "#4e6375";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(button.x, button.y, button.w, button.h);
+    ctx.fillStyle = hover ? "#05080c" : "#e7edf2";
+    ctx.font = "700 18px Courier New";
+    ctx.fillText(button.label, button.x + button.w / 2, button.y + 31);
+  }
+
+  ctx.fillStyle = "#8ea2b1";
+  ctx.font = "14px Courier New";
+  ctx.fillText("F fecha. Teclas 1-4 tambem carregam a fase.", W / 2, 382);
+}
+
 function cycleVolume() {
   audio.index = (audio.index + 1) % audio.labels.length;
   audio.volume = [1, 0.5, 0][audio.index];
@@ -1219,7 +1293,24 @@ function loop(now) {
 
 window.addEventListener("keydown", (event) => {
   keys.add(event.code);
+  if (event.code === "KeyF" && !event.repeat && state.mode !== "loading") {
+    state.debugLevelMenu = !state.debugLevelMenu;
+    pointer.clicked = false;
+    playTone(state.debugLevelMenu ? 300 : 180, 0.04);
+    return;
+  }
+  if (state.debugLevelMenu && event.code.startsWith("Digit")) {
+    const index = Number(event.code.replace("Digit", "")) - 1;
+    if (index >= 0 && index < levelDefinitions.length) jumpToLevel(index);
+    return;
+  }
   if (event.code === "Escape" && !event.repeat) {
+    if (state.debugLevelMenu) {
+      state.debugLevelMenu = false;
+      pointer.clicked = false;
+      playTone(180, 0.04);
+      return;
+    }
     if (state.mode === "game") {
       state.mode = "paused";
       pointer.clicked = false;
