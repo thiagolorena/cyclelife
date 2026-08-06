@@ -24,6 +24,7 @@ Controls:
 - `style.css` handles the responsive pixel-art frame and touch controls.
 - `game.js` contains the canvas game loop, physics, traps, checkpoints, and level data.
 - `assets/silver-feather-logo.png` is used by the startup loading screen.
+- `assets/world_tileset.png` provides the grass/dirt and snow ground tiles.
 - `docs/PROJECT_DOCUMENTATION.md` is the living project documentation and should be updated with every build.
 
 ## Build notes

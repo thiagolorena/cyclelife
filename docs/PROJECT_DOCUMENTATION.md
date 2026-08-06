@@ -40,6 +40,7 @@ Arquivos principais:
 - `style.css`: moldura visual, responsividade, estilo pixel art e botoes mobile.
 - `game.js`: loop principal, fisica, colisao, camera, fases, armadilhas, checkpoints, FX e renderizacao.
 - `assets/silver-feather-logo.png`: logo usado na tela inicial de loading.
+- `assets/world_tileset.png`: tileset usado para chao/grama e neve.
 - `README.md`: resumo publico do projeto.
 - `docs/PROJECT_DOCUMENTATION.md`: documentacao completa e parametro de trabalho.
 
@@ -174,7 +175,9 @@ O jogo possui 4 fases. Cada fase tem largura propria, porta de saida, chao segme
 
 Solidos atuais:
 
-- Plataformas verdes de chao em segmentos separados.
+- Plataformas de chao em segmentos separados.
+- As fases 1, 2 e 3 usam o primeiro sprite da primeira fileira do tileset: grama e terra juntos.
+- A fase 4 usa tiles de neve identificados na fileira superior direita do tileset, nos blocos azul-claro/ciano com topo branco.
 - Nuvens-armadilha que parecem parte do fundo, mas podem cair.
 
 Blocos cinzas:
@@ -306,6 +309,7 @@ A tesoura gigante aparece na fase 4.
 
 Comportamento:
 
+- A fase 4 tem tema de neve.
 - Fica visivel no ceu assim que a fase comeca.
 - Comeca no canto superior esquerdo, com apenas a ponta aparecendo, para nao bloquear o primeiro pulo.
 - Ao renascer em checkpoint na fase 4, a tesoura volta para a posicao superior esquerda relativa ao personagem.
@@ -329,6 +333,8 @@ O jogo possui:
 - Tremor de tela em morte e ativacao de armadilhas.
 - Flash vermelho em explosoes e eventos perigosos.
 - Particulas em pulo, pouso, espinhos, mortes, explosoes e corte da tesoura.
+- Neve caindo na tela durante a fase 4.
+- Cachecol no personagem, mais destacado na fase de neve.
 - Animacao especial de morte espetada nos espinhos.
 - Jogador com desenho suavizado, sombra e leve squash/stretch.
 - HUD com checkpoint atual, tempo e contador de mortes.
@@ -362,7 +368,8 @@ Como o projeto e estatico, "build" significa:
 - `08295de`: menu temporario de teste acionado por `F` para escolher fases imediatamente.
 - `7314bff`: tesoura da fase 4 reposicionada para comecar fora da rota do pulo, chao falso abrindo como buraco real e nuvens corrigidas para matar com respawn limpo.
 - `780d75e`: plataformas falsas removidas de todas as fases, espinhos redesenhados menores com base integrada, hitbox reduzida e animacao de morte espetada com gotas.
-- Versao atual: espinhos com altura aleatoria segura por fase, morte espetada tambem para espinhos acima do chao, porta da fase 4 reposicionada, tesoura reajustada por checkpoint e bomba redonda visivel antes da ativacao.
+- `dacb88b`: espinhos com altura aleatoria segura por fase, morte espetada tambem para espinhos acima do chao, porta da fase 4 reposicionada, tesoura reajustada por checkpoint e bomba redonda visivel antes da ativacao.
+- Versao atual: tileset aplicado ao chao, fase 4 convertida para tema de neve, neve caindo na tela e cachecol no personagem.
 
 ## Proximos caminhos sugeridos
 

@@ -16,6 +16,21 @@ const touch = new Set();
 const pointer = { x: 0, y: 0, clicked: false };
 const logoImage = new Image();
 logoImage.src = "assets/silver-feather-logo.png";
+const tilesetImage = new Image();
+tilesetImage.src = "assets/world_tileset.png";
+const TILE_SIZE = 16;
+const tiles = {
+  grass: { sx: 0, sy: 0 },
+  snow: { sx: 96, sy: 0 },
+};
+const snowflakes = Array.from({ length: 120 }, (_, index) => ({
+  x: (index * 83) % W,
+  y: (index * 47) % H,
+  speed: 0.42 + (index % 5) * 0.18,
+  drift: 0.25 + (index % 7) * 0.05,
+  size: 2 + (index % 3),
+  phase: index * 0.7,
+}));
 
 const audio = {
   context: null,
@@ -934,6 +949,7 @@ function draw(now) {
   drawParticles();
   drawStartHint(now);
   ctx.restore();
+  if (state.levelIndex === 3 && (state.mode === "game" || state.mode === "paused")) drawSnow(now);
   drawOverlay();
   drawDebugLevelMenu();
 }
@@ -1044,14 +1060,15 @@ function drawWin() {
 }
 
 function drawBackground(now) {
-  ctx.fillStyle = state.levelIndex === 2 ? "#1a1a2f" : state.levelIndex === 3 ? "#111928" : "#092334";
+  ctx.fillStyle = state.levelIndex === 2 ? "#1a1a2f" : state.levelIndex === 3 ? "#102034" : "#092334";
   ctx.fillRect(state.cameraX, 0, W, H);
-  ctx.fillStyle = state.levelIndex === 2 ? "#4e2448" : state.levelIndex === 3 ? "#273a54" : "#123e4f";
+  ctx.fillStyle = state.levelIndex === 2 ? "#4e2448" : state.levelIndex === 3 ? "#d7e6ee" : "#123e4f";
   for (let x = Math.floor(state.cameraX / 96) * 96; x < state.cameraX + W + 96; x += 96) {
-    ctx.fillRect(x, 104 + ((x / 96) % 3) * 18, 48, 12);
-    ctx.fillRect(x + 20, 122 + ((x / 96) % 3) * 18, 34, 10);
+    const y = 104 + ((x / 96) % 3) * 18;
+    ctx.fillRect(x, y, 48, 12);
+    ctx.fillRect(x + 20, y + 18, 34, 10);
   }
-  ctx.fillStyle = "#071018";
+  ctx.fillStyle = state.levelIndex === 3 ? "#08111d" : "#071018";
   ctx.fillRect(state.cameraX, 496, W, 80);
 }
 
@@ -1077,12 +1094,32 @@ function drawBlock(block) {
     return;
   }
 
-  ctx.fillStyle = "#3e7f4f";
+  if (tilesetImage.complete && tilesetImage.naturalWidth) {
+    drawTiledGround(block, state.levelIndex === 3 ? tiles.snow : tiles.grass);
+    return;
+  }
+
+  ctx.fillStyle = state.levelIndex === 3 ? "#c8e5ee" : "#3e7f4f";
   ctx.fillRect(block.x, block.y, block.w, block.h);
   ctx.fillStyle = "rgba(255,255,255,0.16)";
   ctx.fillRect(block.x, block.y, block.w, 5);
   ctx.fillStyle = "rgba(0,0,0,0.24)";
   ctx.fillRect(block.x, block.y + block.h - 6, block.w, 6);
+}
+
+function drawTiledGround(block, tile) {
+  const scale = 2;
+  const size = TILE_SIZE * scale;
+  for (let x = block.x; x < block.x + block.w; x += size) {
+    const drawW = Math.min(size, block.x + block.w - x);
+    ctx.drawImage(tilesetImage, tile.sx, tile.sy, TILE_SIZE, TILE_SIZE, x, block.y, drawW, size);
+  }
+  if (block.h > size) {
+    ctx.fillStyle = state.levelIndex === 3 ? "#395063" : "#6b4a28";
+    ctx.fillRect(block.x, block.y + size, block.w, block.h - size);
+  }
+  ctx.fillStyle = "rgba(0,0,0,0.24)";
+  ctx.fillRect(block.x, block.y + block.h - 5, block.w, 5);
 }
 
 function drawCloudTrap(block) {
@@ -1270,14 +1307,24 @@ function drawPlayer(now) {
   ctx.fillRect(Math.round(px), Math.round(py + bob - squash), player.w, player.h + squash);
   ctx.fillStyle = "#2e6f95";
   ctx.fillRect(Math.round(px + 4), Math.round(py + 7 + bob - squash), 14, 8);
-  ctx.fillStyle = "#ff3864";
-  ctx.fillRect(Math.round(px - player.facing * 4 + 8), Math.round(py + 11 + bob), 8, 5);
+  drawPlayerScarf(px, py + bob, now);
   ctx.fillStyle = "#05080c";
   ctx.fillRect(player.facing > 0 ? px + 15 : px + 4, py + 6 + bob - squash, 4, 4);
   ctx.fillStyle = "#ffd166";
   const leg = Math.floor(player.frame) % 2 === 0 ? 3 : -1;
   ctx.fillRect(px + 3, py + player.h - 2 + bob, 7, 4 + leg);
   ctx.fillRect(px + 13, py + player.h - 2 + bob, 7, 4 - leg);
+}
+
+function drawPlayerScarf(px, py, now) {
+  const wind = state.levelIndex === 3 ? 2 : 0;
+  const tailDir = -player.facing;
+  const flutter = Math.round(Math.sin(now * 0.018 + player.frame) * 2);
+  ctx.fillStyle = state.levelIndex === 3 ? "#e63946" : "#ff3864";
+  ctx.fillRect(Math.round(px + 3), Math.round(py + 11), 16, 5);
+  ctx.fillRect(Math.round(px + 9 + tailDir * 10), Math.round(py + 12 + flutter), 12 + wind, 4);
+  ctx.fillStyle = "#ffd166";
+  ctx.fillRect(Math.round(px + 8), Math.round(py + 12), 3, 3);
 }
 
 function drawImpaledPlayer(now) {
@@ -1320,6 +1367,20 @@ function drawParticles() {
     ctx.fillStyle = particle.color;
     ctx.fillRect(Math.round(particle.x), Math.round(particle.y), Math.max(1, particle.size), Math.max(1, particle.size));
   }
+  ctx.globalAlpha = 1;
+}
+
+function drawSnow(now) {
+  ctx.save();
+  ctx.fillStyle = "rgba(231, 237, 242, 0.86)";
+  for (const flake of snowflakes) {
+    const x = (flake.x + Math.sin(now * 0.0015 + flake.phase) * 18 + now * flake.drift * 0.02) % W;
+    const y = (flake.y + now * flake.speed * 0.035) % H;
+    ctx.globalAlpha = 0.45 + (flake.size - 2) * 0.16;
+    ctx.fillRect(Math.round(x), Math.round(y), flake.size, flake.size);
+    if (flake.size > 2) ctx.fillRect(Math.round(x - 1), Math.round(y + 1), flake.size + 2, 1);
+  }
+  ctx.restore();
   ctx.globalAlpha = 1;
 }
 
