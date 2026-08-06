@@ -11,7 +11,7 @@ Open `index.html` in a browser.
 Controls:
 
 - Move: Arrow keys or A/D
-- Jump: Space, W, or Up
+- Jump: Space or Up
 - Run: Shift
 - Restart: R
 - Pause: Esc

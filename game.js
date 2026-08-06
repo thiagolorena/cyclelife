@@ -552,7 +552,7 @@ function update(dt, now) {
   const left = inputDown("ArrowLeft") || inputDown("KeyA");
   const right = inputDown("ArrowRight") || inputDown("KeyD");
   const run = inputDown("ShiftLeft") || inputDown("ShiftRight") || inputDown("Run");
-  const jump = inputDown("Space") || inputDown("ArrowUp") || inputDown("KeyW");
+  const jump = inputDown("Space") || inputDown("ArrowUp");
   const speed = run ? 5.2 : 3.25;
   const wasGrounded = player.grounded;
 

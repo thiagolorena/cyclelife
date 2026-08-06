@@ -114,7 +114,7 @@ Branch principal:
 Teclado:
 
 - Mover: setas esquerda/direita ou A/D.
-- Pular: Espaco, W ou seta para cima.
+- Pular: Espaco ou seta para cima.
 - Correr: Shift.
 - Reiniciar fase: R.
 - Pausar/continuar: ESC.
@@ -372,7 +372,8 @@ Como o projeto e estatico, "build" significa:
 - `780d75e`: plataformas falsas removidas de todas as fases, espinhos redesenhados menores com base integrada, hitbox reduzida e animacao de morte espetada com gotas.
 - `dacb88b`: espinhos com altura aleatoria segura por fase, morte espetada tambem para espinhos acima do chao, porta da fase 4 reposicionada, tesoura reajustada por checkpoint e bomba redonda visivel antes da ativacao.
 - `57f761b`: tileset aplicado ao chao, fase 4 convertida para tema de neve, neve caindo na tela e cachecol no personagem.
-- Versao atual: cachecol limitado a fase 4 e tesoura com golpe de corte quando chega perto do jogador.
+- `127f3f8`: cachecol limitado a fase 4 e tesoura com golpe de corte quando chega perto do jogador.
+- Versao atual: tecla `W` removida do comando de pulo; pulo permanece em Espaco e seta para cima.
 
 ## Proximos caminhos sugeridos
 
