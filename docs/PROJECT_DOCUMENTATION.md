@@ -19,7 +19,7 @@ Em toda entrega de build, responder ao usuario com:
 
 Cyclelife e um jogo de plataforma 2D em pixel art, simples e dificil, feito para matar o jogador por meio do proprio cenario.
 
-O jogador possui apenas uma vida. Ao morrer, ele retorna ao inicio da fase ou ao ultimo checkpoint valido. O objetivo de cada fase e chegar ate uma porta. A dificuldade vem de armadilhas que parecem parte normal do mapa, mas reagem ao jogador: nuvens do cenario caem, chao desaparece, serras aparecem, espinhos sobem de buracos, checkpoints podem enganar, uma bomba gigante explode repetidamente e uma tesoura gigante persegue o jogador na fase final.
+O jogador possui apenas uma vida. Ao morrer, ele retorna ao inicio da fase ou ao ultimo checkpoint valido. O objetivo de cada fase e chegar ate uma porta. A dificuldade vem de armadilhas que parecem parte normal do mapa, mas reagem ao jogador: nuvens do cenario caem, serras aparecem, espinhos sobem de buracos, checkpoints podem enganar, uma bomba gigante explode repetidamente e uma tesoura gigante persegue o jogador na fase final.
 
 ## Pilares de design
 
@@ -146,6 +146,7 @@ O jogador e um quadrado pequeno com animacao simples:
 - Animacao basica de pernas ao andar/correr.
 - Posicao visual suavizada por interpolacao, sem alterar a fisica real.
 - Particulas pequenas ao pular, pousar e morrer.
+- Morte por espinho segura o respawn por um instante para mostrar o personagem espetado, com gotas de sangue.
 - Sombra simples e leve squash/stretch para dar mais vida ao quadrado.
 - Pequeno efeito visual de "blink" apos morrer/renascer.
 
@@ -174,11 +175,15 @@ Solidos atuais:
 
 - Plataformas verdes de chao em segmentos separados.
 - Nuvens-armadilha que parecem parte do fundo, mas podem cair.
-- Pontes falsas do tipo `crumbly`, que desaparecem quando ativadas.
 
 Blocos cinzas:
 
 - Removidos. Eles nao estavam sendo utilizados como parte essencial do design pedido.
+
+Plataformas falsas/que caem:
+
+- Removidas de todas as fases.
+- A mecanica de chao que abre ou cai tambem foi removida do codigo para evitar uso acidental em novas fases.
 
 Saida:
 
@@ -247,15 +252,6 @@ Armadilhas do tipo `hiddenSaw`:
 - Nao devem surgir em plataformas verdes muito proximas de espinhos de buraco, para nao criar bloqueios impossiveis.
 - A serra escondida inicial da fase 1 foi removida por ficar perto demais da sequencia de espinhos.
 
-### Pontes falsas
-
-Armadilhas do tipo `crumbly`:
-
-- Parecem chao normal.
-- Ao ativar, deixam de ser solidas.
-- A abertura e animada em duas metades que se separam, formando um buraco visual claro.
-- Criam buracos inesperados sem parecer que o bloco apenas derreteu ou caiu inteiro.
-
 ### Espinhos de buraco
 
 Os espinhos fixos no chao foram removidos. Os espinhos atuais ficam nos buracos:
@@ -263,11 +259,15 @@ Os espinhos fixos no chao foram removidos. Os espinhos atuais ficam nos buracos:
 - Ficam recolhidos quando o jogador ainda esta se aproximando.
 - Disparam quando o centro do corpo do jogador ja esta sobre a area do buraco.
 - Sobem muito rapido para matar quem atravessar sem respeitar o timing.
+- Sao visualmente menores e mais baixos que nas builds anteriores.
+- Possuem uma base escura fixa integrada ao fundo do buraco, para nao parecer que uma parte estatica ficou separada de outra que sobe.
 - Permanecem altos por um curto periodo.
 - Recolhem e entram em cooldown antes de poderem disparar de novo.
 - Criam janelas reais de passagem para o jogador, mas sem aviso antecipado generoso.
 - Mudam de vermelho para amarelo quando estao perto da altura maxima.
 - O jogador ainda morre se cair no fundo do buraco.
+- A colisao dos espinhos foi reduzida junto com o sprite, usando uma hitbox mais estreita e menos alta.
+- Ao morrer por espinho, o jogador fica espetado por alguns frames, com gotas de sangue, antes de voltar ao checkpoint.
 
 Espinhos de buraco atuais:
 
@@ -320,6 +320,7 @@ O jogo possui:
 - Tremor de tela em morte e ativacao de armadilhas.
 - Flash vermelho em explosoes e eventos perigosos.
 - Particulas em pulo, pouso, espinhos, mortes, explosoes e corte da tesoura.
+- Animacao especial de morte espetada nos espinhos.
 - Jogador com desenho suavizado, sombra e leve squash/stretch.
 - HUD com checkpoint atual, tempo e contador de mortes.
 - Tela de vitoria ao concluir a fase 4, exibindo mortes totais e tempo final.
@@ -350,7 +351,8 @@ Como o projeto e estatico, "build" significa:
 - `3f67913`: normalizacao da fisica por tempo para manter a mesma velocidade em navegadores/monitores com FPS diferente.
 - `ebff00d`: loading com logo Silver Feather, hitboxes de dano mais justas, espinhos acionados quando o jogador esta sobre o buraco, quarta fase com tesoura gigante perseguidora e novos FX.
 - `08295de`: menu temporario de teste acionado por `F` para escolher fases imediatamente.
-- Versao atual: tesoura da fase 4 reposicionada para comecar fora da rota do pulo, chao falso abrindo como buraco real e nuvens corrigidas para matar com respawn limpo.
+- `7314bff`: tesoura da fase 4 reposicionada para comecar fora da rota do pulo, chao falso abrindo como buraco real e nuvens corrigidas para matar com respawn limpo.
+- Versao atual: plataformas falsas removidas de todas as fases, espinhos redesenhados menores com base integrada, hitbox reduzida e animacao de morte espetada com gotas.
 
 ## Proximos caminhos sugeridos
 

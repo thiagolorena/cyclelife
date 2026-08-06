@@ -54,6 +54,7 @@ const state = {
   shake: 0,
   flash: 0,
   particles: [],
+  deathAnimation: null,
   debugLevelMenu: false,
   triggered: new Set(),
 };
@@ -108,9 +109,7 @@ function makeLevels() {
       ],
       traps: [
         cloudTrap("cloud-1", 330, 390, 104, 132, 66, 80),
-        crumbly("fake-bridge", 1515, 1584, 458, 136, 38),
         cloudTrap("cloud-2", 2050, 2138, 92, 132, 72, 45),
-        crumbly("runway", 2470, 2572, 458, 128, 38),
         cloudTrap("last-lie", 3316, 3420, 116, 112, 62, 60),
       ],
       door: rect(3568, 386, 44, 72, "door"),
@@ -144,7 +143,6 @@ function makeLevels() {
       ],
       traps: [
         cloudTrap("soft-cloud", 610, 698, 86, 124, 64, 60),
-        crumbly("quiet-bridge", 1225, 1308, 458, 116, 38),
         hiddenSaw("floor-smile", 1660, 1730, 430, 92, 28),
         cloudTrap("wide-cloud", 2210, 2260, 88, 142, 72, 80),
       ],
@@ -176,7 +174,6 @@ function makeLevels() {
       ],
       traps: [
         cloudTrap("final-cloud", 740, 806, 86, 132, 66, 65),
-        crumbly("final-bridge", 1900, 2030, 458, 120, 38),
         hiddenSaw("final-saw", 2650, 2730, 430, 92, 28),
       ],
       bomb: {
@@ -224,10 +221,8 @@ function makeLevels() {
       ],
       traps: [
         cloudTrap("stage4-cloud-a", 690, 776, 92, 124, 66, 52),
-        crumbly("stage4-floor-a", 1302, 1372, 458, 112, 38),
         cloudTrap("stage4-cloud-b", 1850, 1948, 88, 136, 70, 48),
         hiddenSaw("stage4-saw-a", 2260, 2344, 430, 96, 28),
-        crumbly("stage4-floor-b", 2870, 2950, 458, 126, 38),
       ],
       scissors: {
         x: -170,
@@ -247,7 +242,7 @@ function spikePit(x, bottom, w, maxH, period, offset) {
     cycling: true,
     bottom,
     minH: 0,
-    maxH,
+    maxH: Math.min(maxH, 46),
     period,
     offset,
   });
@@ -276,16 +271,6 @@ function hiddenSaw(id, triggerX, x, y, w, h) {
   };
 }
 
-function crumbly(id, triggerX, x, y, w, h) {
-  return {
-    id,
-    trigger: rect(triggerX, 0, 70, H),
-    block: rect(x, y, w, h, "crumbly"),
-    start: rect(x, y, w, h, "crumbly"),
-    activeAt: 0,
-  };
-}
-
 function cloneRect(item) {
   return { ...item };
 }
@@ -300,7 +285,6 @@ function cloneTrap(trap) {
     vy: 0,
     armed: false,
     activeAt: 0,
-    openProgress: 0,
   };
 }
 
@@ -379,6 +363,7 @@ function reset(toCheckpoint = true) {
   state.triggered.clear();
   state.shake = 8;
   state.flash = 0;
+  state.deathAnimation = null;
   if (!toCheckpoint) state.particles = [];
 
   for (const cp of state.level.checkpoints) cp.exploded = false;
@@ -387,7 +372,6 @@ function reset(toCheckpoint = true) {
     trap.vy = 0;
     trap.armed = false;
     trap.activeAt = 0;
-    trap.openProgress = 0;
     Object.assign(trap.block, cloneRect(trap.start));
   }
   for (const hazard of state.level.hazards) {
@@ -415,11 +399,33 @@ function reset(toCheckpoint = true) {
 
 function kill(reason = "death") {
   if (player.deadUntil > performance.now() || state.mode !== "game" || state.won) return;
-  spawnDeathFx(reason);
   state.deaths += 1;
   deathsEl.textContent = `Deaths: ${state.deaths}`;
+  if (reason === "spike") {
+    startSpikeDeath();
+    return;
+  }
+  spawnDeathFx(reason);
   playTone(90, 0.16);
   reset(true);
+}
+
+function startSpikeDeath() {
+  const now = performance.now();
+  player.vx = 0;
+  player.vy = 0;
+  player.deadUntil = now + 760;
+  state.deathAnimation = {
+    reason: "spike",
+    x: player.x,
+    y: player.y,
+    started: now,
+    respawnAt: now + 760,
+  };
+  state.flash = 14;
+  state.shake = 13;
+  spawnBloodDrops(player.x + player.w / 2, player.y + player.h * 0.52, 18);
+  playTone(120, 0.12);
 }
 
 function completeLevel() {
@@ -460,6 +466,13 @@ function update(dt, now) {
   }
   if (state.mode === "win") {
     if (inputDown("Enter") || inputDown("Space")) state.mode = "menu";
+    return;
+  }
+  if (state.deathAnimation) {
+    updateParticles(step);
+    if (now >= state.deathAnimation.respawnAt) {
+      reset(true);
+    }
     return;
   }
 
@@ -590,7 +603,6 @@ function updateTrap(trap, now, step) {
     trap.activeAt = now + trap.delay;
     trap.armed = true;
     state.shake = 6;
-    if (trap.block.type === "crumbly") spawnParticles(trap.block.x + trap.block.w / 2, trap.block.y + 8, "#3e7f4f", 14, 1);
   }
 
   if (!trap.armed || now < trap.activeAt) return;
@@ -605,10 +617,6 @@ function updateTrap(trap, now, step) {
     trap.block.y += trap.vy * step;
   }
 
-  if (trap.block.type === "crumbly") {
-    trap.openProgress = Math.min(1, (trap.openProgress || 0) + 0.055 * step);
-    trap.block.h = trap.start.h;
-  }
 }
 
 function updateHazard(hazard, now, step) {
@@ -619,7 +627,7 @@ function updateHazard(hazard, now, step) {
 
   if (!hazard.triggeredAt && now > (hazard.cooldownUntil || 0) && overTrap) {
     hazard.triggeredAt = now;
-    hazard.h = Math.max(hazard.h, hazard.maxH * 0.55);
+    hazard.h = Math.max(hazard.h, hazard.maxH * 0.35);
     spawnParticles(hazard.x + hazard.w / 2, hazard.bottom - 6, "#ff3864", 12, 1.4);
     state.shake = Math.max(state.shake, 5);
     playTone(150, 0.035);
@@ -753,6 +761,21 @@ function spawnDeathFx(reason) {
   return created;
 }
 
+function spawnBloodDrops(x, y, amount) {
+  for (let i = 0; i < amount; i += 1) {
+    state.particles.push({
+      x: x + (Math.random() - 0.5) * 16,
+      y: y + (Math.random() - 0.5) * 8,
+      vx: (Math.random() - 0.5) * 2.8,
+      vy: -1.4 - Math.random() * 2.6,
+      life: 34 + Math.random() * 24,
+      maxLife: 58,
+      size: 2 + Math.random() * 3,
+      color: Math.random() > 0.35 ? "#b5122a" : "#ff3864",
+    });
+  }
+}
+
 function updateParticles(step) {
   for (const particle of state.particles) {
     particle.x += particle.vx * step;
@@ -789,7 +812,6 @@ function activeSolids() {
   const trapSolids = state.level.traps
     .filter((trap) => {
       if (trap.block.type === "hiddenSaw" || trap.block.type === "falling") return false;
-      if (trap.block.type === "crumbly" && trap.armed && performance.now() >= trap.activeAt) return false;
       return trap.block.h > 0 && trap.block.y < H + 80;
     })
     .map((trap) => trap.block);
@@ -811,7 +833,7 @@ function playerHitbox() {
 
 function hazardHitbox(hazard) {
   if (hazard.type === "pit") return insetBox(hazard, 8, 8, 0);
-  if (hazard.type === "spikes") return insetBox(hazard, 7, Math.max(0, hazard.h * 0.12), 2);
+  if (hazard.type === "spikes") return insetBox(hazard, 10, Math.max(0, hazard.h * 0.28), 8);
   if (hazard.type === "saw" || hazard.type === "hiddenSaw") return insetBox(hazard, 5, 5);
   return insetBox(hazard, 4, 4);
 }
@@ -1002,7 +1024,7 @@ function drawTiles() {
   for (const solid of state.level.solids) drawBlock(solid);
   for (const hazard of state.level.hazards) drawHazard(hazard);
   for (const trap of state.level.traps) {
-    if (trap.block.type === "falling" || trap.block.type === "crumbly") drawTrapBlock(trap);
+    if (trap.block.type === "falling") drawTrapBlock(trap);
     if (trap.block.type === "hiddenSaw" && trap.armed) drawHazard(trap.block);
   }
 }
@@ -1012,17 +1034,11 @@ function drawTrapBlock(trap) {
     drawCloudTrap(trap.block);
     return;
   }
-  drawBlock(trap.block, trap.openProgress || 0);
 }
 
-function drawBlock(block, openProgress = 0) {
+function drawBlock(block) {
   if (block.type === "falling") {
     drawCloudTrap(block);
-    return;
-  }
-
-  if (block.type === "crumbly" && openProgress > 0) {
-    drawOpeningFloor(block, openProgress);
     return;
   }
 
@@ -1032,32 +1048,6 @@ function drawBlock(block, openProgress = 0) {
   ctx.fillRect(block.x, block.y, block.w, 5);
   ctx.fillStyle = "rgba(0,0,0,0.24)";
   ctx.fillRect(block.x, block.y + block.h - 6, block.w, 6);
-  if (block.type === "crumbly") {
-    ctx.fillStyle = "#261f1b";
-    for (let x = block.x + 8; x < block.x + block.w; x += 26) ctx.fillRect(x, block.y + 13, 10, 4);
-  }
-}
-
-function drawOpeningFloor(block, progress) {
-  const eased = progress * progress * (3 - 2 * progress);
-  const gap = eased * (block.w * 0.54);
-  const drop = eased * 18;
-  const half = block.w / 2;
-
-  ctx.fillStyle = "#05080c";
-  ctx.fillRect(block.x, block.y + 6, block.w, block.h + 44);
-  ctx.fillStyle = "#3e7f4f";
-  ctx.fillRect(block.x - gap, block.y + drop, half, block.h);
-  ctx.fillRect(block.x + half + gap, block.y + drop, half, block.h);
-  ctx.fillStyle = "rgba(255,255,255,0.16)";
-  ctx.fillRect(block.x - gap, block.y + drop, half, 5);
-  ctx.fillRect(block.x + half + gap, block.y + drop, half, 5);
-  ctx.fillStyle = "rgba(0,0,0,0.28)";
-  ctx.fillRect(block.x - gap, block.y + block.h - 6 + drop, half, 6);
-  ctx.fillRect(block.x + half + gap, block.y + block.h - 6 + drop, half, 6);
-  ctx.fillStyle = "#261f1b";
-  for (let x = block.x + 8 - gap; x < block.x + half - 10 - gap; x += 26) ctx.fillRect(x, block.y + 13 + drop, 10, 4);
-  for (let x = block.x + half + 8 + gap; x < block.x + block.w - 10 + gap; x += 26) ctx.fillRect(x, block.y + 13 + drop, 10, 4);
 }
 
 function drawCloudTrap(block) {
@@ -1078,9 +1068,8 @@ function drawCloudTrap(block) {
 }
 
 function drawHazard(h) {
-  if (h.type === "spikes" && h.h <= 2) {
-    ctx.fillStyle = "#4d1826";
-    ctx.fillRect(h.x, h.bottom - 4, h.w, 4);
+  if (h.type === "spikes") {
+    drawSpikePit(h);
     return;
   }
 
@@ -1094,6 +1083,33 @@ function drawHazard(h) {
     ctx.lineTo(x + 16, h.y + h.h);
     ctx.fill();
   }
+}
+
+function drawSpikePit(h) {
+  const baseY = h.bottom - 10;
+  const visibleH = Math.max(0, h.h);
+  ctx.fillStyle = "#2a1018";
+  ctx.fillRect(h.x, baseY, h.w, 10);
+  ctx.fillStyle = "#4d1826";
+  for (let x = h.x + 2; x < h.x + h.w - 2; x += 14) {
+    ctx.fillRect(x, baseY + 3, 8, 4);
+  }
+  if (visibleH <= 2) return;
+
+  const top = h.bottom - visibleH;
+  ctx.fillStyle = visibleH > h.maxH * 0.75 ? "#ffd166" : "#d7264a";
+  for (let x = h.x + 3; x < h.x + h.w - 6; x += 14) {
+    ctx.beginPath();
+    ctx.moveTo(x, h.bottom - 6);
+    ctx.lineTo(x + 6, top);
+    ctx.lineTo(x + 12, h.bottom - 6);
+    ctx.fill();
+    ctx.fillStyle = "#8d1730";
+    ctx.fillRect(x + 5, top + 6, 2, Math.max(0, visibleH - 13));
+    ctx.fillStyle = visibleH > h.maxH * 0.75 ? "#ffd166" : "#d7264a";
+  }
+  ctx.fillStyle = "#13080d";
+  ctx.fillRect(h.x, h.bottom - 4, h.w, 4);
 }
 
 function drawCheckpoints() {
@@ -1190,6 +1206,10 @@ function drawScissors(scissors, now) {
 }
 
 function drawPlayer(now) {
+  if (state.deathAnimation?.reason === "spike") {
+    drawImpaledPlayer(now);
+    return;
+  }
   const blink = player.deadUntil > now && Math.floor(now / 60) % 2 === 0;
   if (blink) return;
   const px = player.drawX || player.x;
@@ -1210,6 +1230,39 @@ function drawPlayer(now) {
   const leg = Math.floor(player.frame) % 2 === 0 ? 3 : -1;
   ctx.fillRect(px + 3, py + player.h - 2 + bob, 7, 4 + leg);
   ctx.fillRect(px + 13, py + player.h - 2 + bob, 7, 4 - leg);
+}
+
+function drawImpaledPlayer(now) {
+  const death = state.deathAnimation;
+  const elapsed = now - death.started;
+  const px = death.x;
+  const py = death.y + Math.min(9, elapsed * 0.015);
+  const twitch = Math.sin(now * 0.05) * 1.5;
+
+  ctx.fillStyle = "rgba(0,0,0,0.3)";
+  ctx.fillRect(Math.round(px - 1), Math.round(py + player.h + 6), player.w + 4, 4);
+  ctx.fillStyle = "#e7edf2";
+  ctx.fillRect(Math.round(px), Math.round(py + twitch), player.w, player.h);
+  ctx.fillStyle = "#2e6f95";
+  ctx.fillRect(Math.round(px + 4), Math.round(py + 7 + twitch), 14, 8);
+  ctx.fillStyle = "#05080c";
+  ctx.fillRect(Math.round(px + 5), Math.round(py + 6 + twitch), 4, 4);
+  ctx.fillRect(Math.round(px + 14), Math.round(py + 6 + twitch), 4, 4);
+
+  ctx.fillStyle = "#d7264a";
+  ctx.beginPath();
+  ctx.moveTo(px + 4, py + player.h + 12);
+  ctx.lineTo(px + 10, py + 13);
+  ctx.lineTo(px + 16, py + player.h + 12);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(px + 9, py + player.h + 15);
+  ctx.lineTo(px + 16, py + 11);
+  ctx.lineTo(px + 22, py + player.h + 15);
+  ctx.fill();
+  ctx.fillStyle = "#b5122a";
+  ctx.fillRect(Math.round(px + 9), Math.round(py + 18), 3, 7);
+  ctx.fillRect(Math.round(px + 16), Math.round(py + 16), 3, 9);
 }
 
 function drawParticles() {
