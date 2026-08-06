@@ -2,7 +2,7 @@
 
 Cyclelife is a tiny 2D pixel-art platformer prototype built around one cruel rule: the level is trying to kill you.
 
-The player has one life. Death sends them back to the latest checkpoint. The game now has a menu and 3 stages. The exit is a door at the end of each stage, but the scenario itself becomes the enemy: homing trap clouds, fake floors, hidden saws, pit spikes, a false checkpoint, and a giant bomb in the final stage.
+The player has one life. Death sends them back to the latest checkpoint. The game now has a 3-second studio loading screen, a menu, and 4 stages. The exit is a door at the end of each stage, but the scenario itself becomes the enemy: homing trap clouds, fake floors, hidden saws, pit spikes, a false checkpoint, a giant bomb, and a giant scissors chase in the last stage.
 
 ## Play
 
@@ -22,6 +22,7 @@ Controls:
 - `index.html` contains the game shell.
 - `style.css` handles the responsive pixel-art frame and touch controls.
 - `game.js` contains the canvas game loop, physics, traps, checkpoints, and level data.
+- `assets/silver-feather-logo.png` is used by the startup loading screen.
 - `docs/PROJECT_DOCUMENTATION.md` is the living project documentation and should be updated with every build.
 
 ## Build notes

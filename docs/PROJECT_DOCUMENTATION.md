@@ -1,6 +1,6 @@
 # Cyclelife - Documentacao do Projeto
 
-Ultima atualizacao: 2026-08-05
+Ultima atualizacao: 2026-08-06
 
 ## Regra de trabalho daqui em diante
 
@@ -19,7 +19,7 @@ Em toda entrega de build, responder ao usuario com:
 
 Cyclelife e um jogo de plataforma 2D em pixel art, simples e dificil, feito para matar o jogador por meio do proprio cenario.
 
-O jogador possui apenas uma vida. Ao morrer, ele retorna ao inicio da fase ou ao ultimo checkpoint valido. O objetivo de cada fase e chegar ate uma porta. A dificuldade vem de armadilhas que parecem parte normal do mapa, mas reagem ao jogador: nuvens do cenario caem, chao desaparece, serras aparecem, espinhos sobem de buracos, checkpoints podem enganar e uma bomba gigante persegue o jogador na fase final.
+O jogador possui apenas uma vida. Ao morrer, ele retorna ao inicio da fase ou ao ultimo checkpoint valido. O objetivo de cada fase e chegar ate uma porta. A dificuldade vem de armadilhas que parecem parte normal do mapa, mas reagem ao jogador: nuvens do cenario caem, chao desaparece, serras aparecem, espinhos sobem de buracos, checkpoints podem enganar, uma bomba gigante explode repetidamente e uma tesoura gigante persegue o jogador na fase final.
 
 ## Pilares de design
 
@@ -38,7 +38,8 @@ Arquivos principais:
 
 - `index.html`: estrutura da pagina, canvas, HUD e controles de toque.
 - `style.css`: moldura visual, responsividade, estilo pixel art e botoes mobile.
-- `game.js`: loop principal, fisica, colisao, camera, fase, armadilhas, checkpoints e renderizacao.
+- `game.js`: loop principal, fisica, colisao, camera, fases, armadilhas, checkpoints, FX e renderizacao.
+- `assets/silver-feather-logo.png`: logo usado na tela inicial de loading.
 - `README.md`: resumo publico do projeto.
 - `docs/PROJECT_DOCUMENTATION.md`: documentacao completa e parametro de trabalho.
 
@@ -53,7 +54,16 @@ Comportamento atual:
 - Isso evita que navegadores ou monitores em 120 Hz/144 Hz acelerem o jogo.
 - Temporizadores como espinhos ciclicos, contagem da bomba e tempo final continuam baseados em milissegundos reais.
 
-## Menu do jogo
+## Loading e menu do jogo
+
+Antes do menu, o jogo exibe uma tela de loading de 3 segundos com o logo `Silver Feather Studio`.
+
+Comportamento atual:
+
+- A tela de loading e renderizada no canvas antes de aceitar entrada de menu.
+- O logo usa o asset enviado pelo usuario e copiado para `assets/silver-feather-logo.png`.
+- Ha uma barra simples de progresso visual.
+- Ao fim de 3 segundos, o jogo entra automaticamente no menu.
 
 O jogo abre em um menu animado renderizado no canvas.
 
@@ -113,7 +123,7 @@ Toque:
 
 - Botoes na tela para esquerda, direita, pulo e corrida em dispositivos touch.
 
-## Jogador
+## Jogador e colisao
 
 O jogador e um quadrado pequeno com animacao simples:
 
@@ -121,7 +131,17 @@ O jogador e um quadrado pequeno com animacao simples:
 - Corrida segurando Shift.
 - Pulo unico quando esta no chao.
 - Animacao basica de pernas ao andar/correr.
+- Posicao visual suavizada por interpolacao, sem alterar a fisica real.
+- Particulas pequenas ao pular, pousar e morrer.
+- Sombra simples e leve squash/stretch para dar mais vida ao quadrado.
 - Pequeno efeito visual de "blink" apos morrer/renascer.
+
+Colisao atual:
+
+- A colisao fisica com plataformas ainda usa o retangulo completo do jogador para manter pousos consistentes.
+- A colisao de dano usa `playerHitbox()`, um retangulo menor que o sprite.
+- Nuvens, bombas, espinhos, serras e tesoura possuem hitboxes especificas e menores que o desenho total.
+- A intencao e que o jogador morra quando o contato parece visualmente justo, evitando caixas invisiveis largas demais.
 
 Valores atuais:
 
@@ -134,7 +154,7 @@ Valores atuais:
 
 ## Estrutura das fases
 
-O jogo possui 3 fases. Cada fase tem largura propria, porta de saida, chao segmentado, buracos, checkpoints e armadilhas. A camera acompanha o jogador lateralmente.
+O jogo possui 4 fases. Cada fase tem largura propria, porta de saida, chao segmentado, buracos, checkpoints e armadilhas. A camera acompanha o jogador lateralmente.
 
 Solidos atuais:
 
@@ -149,12 +169,12 @@ Blocos cinzas:
 Saida:
 
 - Porta no fim de cada fase.
-- Nas fases 1 e 2, entrar na porta carrega a proxima fase.
-- Na fase 3, entrar na porta conclui o jogo e mostra a tela de vitoria.
+- Nas fases 1, 2 e 3, entrar na porta carrega a proxima fase.
+- Na fase 4, entrar na porta conclui o jogo e mostra a tela de vitoria.
 
 Fases atuais:
 
-- O jogo exibe apenas `Fase 1`, `Fase 2` e `Fase 3` para nao entregar a identidade ou truques da fase ao jogador.
+- O jogo exibe apenas `Fase 1`, `Fase 2`, `Fase 3` e `Fase 4` para nao entregar a identidade ou truques da fase ao jogador.
 - Internamente, cada fase continua com sua propria combinacao de armadilhas e ritmo.
 
 ## Dica inicial
@@ -225,18 +245,21 @@ Armadilhas do tipo `crumbly`:
 
 Os espinhos fixos no chao foram removidos. Os espinhos atuais ficam nos buracos:
 
-- Sobem e descem em intervalos variaveis.
-- Podem ficar totalmente baixos ou praticamente sumidos.
-- Criam janelas reais de passagem para o jogador.
+- Ficam recolhidos quando o jogador ainda esta se aproximando.
+- Disparam quando o centro do corpo do jogador ja esta sobre a area do buraco.
+- Sobem muito rapido para matar quem atravessar sem respeitar o timing.
+- Permanecem altos por um curto periodo.
+- Recolhem e entram em cooldown antes de poderem disparar de novo.
+- Criam janelas reais de passagem para o jogador, mas sem aviso antecipado generoso.
 - Mudam de vermelho para amarelo quando estao perto da altura maxima.
-- Cada conjunto possui ritmo proprio para evitar um padrao unico e previsivel demais.
 - O jogador ainda morre se cair no fundo do buraco.
 
 Espinhos de buraco atuais:
 
-- Fase 1: quatro buracos com espinhos ciclicos.
-- Fase 2: quatro buracos com espinhos ciclicos.
-- Fase 3: tres buracos com espinhos ciclicos.
+- Fase 1: quatro buracos com espinhos acionados por passagem.
+- Fase 2: quatro buracos com espinhos acionados por passagem.
+- Fase 3: tres buracos com espinhos acionados por passagem.
+- Fase 4: cinco buracos com espinhos acionados por passagem.
 
 ### Bomba gigante
 
@@ -244,7 +267,7 @@ A bomba gigante aparece na fase 3.
 
 Comportamento:
 
-- Ativa quando o jogador avanca pela fase final.
+- Ativa quando o jogador avanca pela fase 3.
 - Depois de ativada, permanece ativa mesmo se o jogador virar de costas ou recuar.
 - Quando fica fora da camera, um indicador na borda mostra sua direcao para nao parecer que desapareceu.
 - Persegue o jogador lentamente.
@@ -253,6 +276,19 @@ Comportamento:
 - Depois da explosao, parece ter acabado, mas volta rapidamente e detona de novo quase imediatamente.
 - Esse segundo estouro serve para enganar o jogador que tentar avancar logo apos a primeira explosao.
 - Depois do ciclo enganoso, a bomba continua perseguindo.
+
+### Tesoura gigante
+
+A tesoura gigante aparece na fase 4.
+
+Comportamento:
+
+- Fica visivel no ceu assim que a fase comeca.
+- So comeca a perseguir quando o jogador inicia movimento.
+- Tem velocidade igual ao jogador andando.
+- O jogador consegue escapar correndo.
+- A tesoura ajusta levemente a altura para perseguir o jogador sem sumir da leitura da fase.
+- Se alcancar o jogador, ativa morte especial de corte com particulas, flash e tremor.
 
 ### Buracos
 
@@ -267,8 +303,10 @@ O jogo possui:
 
 - Tremor de tela em morte e ativacao de armadilhas.
 - Flash vermelho em explosoes e eventos perigosos.
+- Particulas em pulo, pouso, espinhos, mortes, explosoes e corte da tesoura.
+- Jogador com desenho suavizado, sombra e leve squash/stretch.
 - HUD com checkpoint atual, tempo e contador de mortes.
-- Tela de vitoria ao concluir a fase 3, exibindo mortes totais e tempo final.
+- Tela de vitoria ao concluir a fase 4, exibindo mortes totais e tempo final.
 - Sons simples controlados pelo volume do menu.
 
 ## Build atual
@@ -293,7 +331,8 @@ Como o projeto e estatico, "build" significa:
 - `1de13b0`: remocao da armadilha escondida na plataforma verde da fase 1 para preservar uma janela justa entre espinhos.
 - `d166137`: nomes publicos das fases sem subtitulo revelador, pause com ESC e dica flutuante inicial.
 - `ae628d1`: bomba final permanece visivel/indicada depois de ativada e tela final mostra mortes e tempo total.
-- Versao atual: normalizacao da fisica por tempo para manter a mesma velocidade em navegadores/monitores com FPS diferente.
+- `3f67913`: normalizacao da fisica por tempo para manter a mesma velocidade em navegadores/monitores com FPS diferente.
+- Versao atual: loading com logo Silver Feather, hitboxes de dano mais justas, espinhos acionados quando o jogador esta sobre o buraco, quarta fase com tesoura gigante perseguidora e novos FX.
 
 ## Proximos caminhos sugeridos
 

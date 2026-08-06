@@ -14,6 +14,8 @@ const GRAVITY = 0.72;
 const keys = new Set();
 const touch = new Set();
 const pointer = { x: 0, y: 0, clicked: false };
+const logoImage = new Image();
+logoImage.src = "assets/silver-feather-logo.png";
 
 const audio = {
   context: null,
@@ -25,6 +27,8 @@ const audio = {
 const player = {
   x: 0,
   y: 0,
+  drawX: 0,
+  drawY: 0,
   w: 22,
   h: 28,
   vx: 0,
@@ -37,7 +41,8 @@ const player = {
 };
 
 const state = {
-  mode: "menu",
+  mode: "loading",
+  loadingStarted: performance.now(),
   menuMessage: "",
   startTime: performance.now(),
   deaths: 0,
@@ -48,6 +53,7 @@ const state = {
   cameraX: 0,
   shake: 0,
   flash: 0,
+  particles: [],
   triggered: new Set(),
 };
 
@@ -187,6 +193,51 @@ function makeLevels() {
       },
       door: rect(3124, 386, 44, 72, "door"),
     },
+    {
+      name: "Fase 4",
+      width: 3520,
+      spawn: { x: 58, y: 397, label: "Start" },
+      solids: [
+        rect(0, 458, 470, 38, "grass"),
+        rect(586, 458, 430, 38, "grass"),
+        rect(1148, 458, 350, 38, "grass"),
+        rect(1640, 458, 380, 38, "grass"),
+        rect(2142, 458, 380, 38, "grass"),
+        rect(2660, 458, 700, 38, "grass"),
+      ],
+      hazards: [
+        rect(470, 496, 116, 80, "pit"),
+        spikePit(486, 496, 84, 118, 2800, 0),
+        rect(1016, 496, 132, 80, "pit"),
+        spikePit(1034, 496, 96, 124, 3200, 0),
+        rect(1498, 496, 142, 80, "pit"),
+        spikePit(1516, 496, 106, 132, 3000, 0),
+        rect(2020, 496, 122, 80, "pit"),
+        spikePit(2036, 496, 88, 116, 3400, 0),
+        rect(2522, 496, 138, 80, "pit"),
+        spikePit(2540, 496, 102, 128, 3100, 0),
+      ],
+      checkpoints: [
+        rect(1200, 408, 28, 50, "cp", { label: "Cut" }),
+        rect(2724, 408, 28, 50, "cp", { label: "Thread" }),
+      ],
+      traps: [
+        cloudTrap("stage4-cloud-a", 690, 776, 92, 124, 66, 52),
+        crumbly("stage4-floor-a", 1302, 1372, 458, 112, 38),
+        cloudTrap("stage4-cloud-b", 1850, 1948, 88, 136, 70, 48),
+        hiddenSaw("stage4-saw-a", 2260, 2344, 430, 96, 28),
+        crumbly("stage4-floor-b", 2870, 2950, 458, 126, 38),
+      ],
+      scissors: {
+        x: 258,
+        y: 86,
+        w: 148,
+        h: 88,
+        speed: 3.25,
+        active: false,
+      },
+      door: rect(3358, 386, 44, 72, "door"),
+    },
   ];
 }
 
@@ -261,6 +312,7 @@ function cloneLevel(definition) {
     traps: definition.traps.map(cloneTrap),
     door: cloneRect(definition.door),
     bomb: definition.bomb ? { ...definition.bomb, state: "chase", stateStarted: performance.now() } : null,
+    scissors: definition.scissors ? { ...definition.scissors } : null,
   };
 }
 
@@ -302,6 +354,8 @@ function reset(toCheckpoint = true) {
   const spawn = toCheckpoint ? player.checkpoint : state.level.spawn;
   player.x = spawn.x;
   player.y = spawn.y;
+  player.drawX = spawn.x;
+  player.drawY = spawn.y;
   player.vx = 0;
   player.vy = 0;
   player.grounded = false;
@@ -309,6 +363,7 @@ function reset(toCheckpoint = true) {
   state.triggered.clear();
   state.shake = 8;
   state.flash = 0;
+  state.particles = [];
 
   for (const cp of state.level.checkpoints) cp.exploded = false;
   for (const trap of state.level.traps) {
@@ -318,6 +373,14 @@ function reset(toCheckpoint = true) {
     trap.activeAt = 0;
     Object.assign(trap.block, cloneRect(trap.start));
   }
+  for (const hazard of state.level.hazards) {
+    if (hazard.type === "spikes") {
+      hazard.h = 0;
+      hazard.y = hazard.bottom;
+      hazard.triggeredAt = 0;
+      hazard.cooldownUntil = 0;
+    }
+  }
   if (state.level.bomb) {
     const bomb = state.level.bomb;
     bomb.x = levelDefinitions[state.levelIndex].bomb.x;
@@ -326,11 +389,16 @@ function reset(toCheckpoint = true) {
     bomb.stateStarted = performance.now();
     bomb.active = false;
   }
+  if (state.level.scissors) {
+    const base = levelDefinitions[state.levelIndex].scissors;
+    Object.assign(state.level.scissors, { ...base, active: false });
+  }
   statusEl.textContent = `${state.level.name} - Checkpoint: ${spawn.label}`;
 }
 
-function kill() {
+function kill(reason = "death") {
   if (player.deadUntil > performance.now() || state.mode !== "game" || state.won) return;
+  spawnDeathFx(reason);
   state.deaths += 1;
   deathsEl.textContent = `Deaths: ${state.deaths}`;
   playTone(90, 0.16);
@@ -355,8 +423,14 @@ function completeLevel() {
 function update(dt, now) {
   const step = dt / FRAME_MS;
 
+  if (state.mode === "loading") {
+    if (now - state.loadingStarted >= 3000) state.mode = "menu";
+    updateParticles(step);
+    return;
+  }
   if (state.mode === "menu" || state.mode === "closed") {
     updateMenuInput();
+    updateParticles(step);
     return;
   }
   if (state.mode === "paused") {
@@ -373,6 +447,7 @@ function update(dt, now) {
   const run = inputDown("ShiftLeft") || inputDown("ShiftRight") || inputDown("Run");
   const jump = inputDown("Space") || inputDown("ArrowUp") || inputDown("KeyW");
   const speed = run ? 5.2 : 3.25;
+  const wasGrounded = player.grounded;
 
   if (left) {
     player.vx = Math.max(player.vx - 0.9 * step, -speed);
@@ -388,18 +463,22 @@ function update(dt, now) {
   if (jump && player.grounded) {
     player.vy = -13.2;
     player.grounded = false;
+    spawnParticles(player.x + player.w / 2, player.y + player.h, "#d7e6ee", 8, 1.2);
     playTone(310, 0.04);
   }
 
   player.vy = Math.min(player.vy + GRAVITY * step, 15);
   move(player.vx * step, 0);
   move(0, player.vy * step);
+  if (!wasGrounded && player.grounded) {
+    spawnParticles(player.x + player.w / 2, player.y + player.h, "#8ea2b1", 10, 0.9);
+  }
 
   for (const cp of state.level.checkpoints) {
-    if (!overlaps(player, cp)) continue;
+    if (!overlaps(playerHitbox(), cp)) continue;
     if (cp.explosive && !cp.exploded) {
       cp.exploded = true;
-      kill();
+      kill("blast");
       state.flash = 18;
       state.shake = 18;
       continue;
@@ -409,23 +488,29 @@ function update(dt, now) {
   }
 
   for (const trap of state.level.traps) updateTrap(trap, now, step);
-  for (const hazard of state.level.hazards) updateHazard(hazard, now);
+  for (const hazard of state.level.hazards) updateHazard(hazard, now, step);
   if (state.level.bomb) updateBomb(state.level.bomb, now, step);
+  if (state.level.scissors) updateScissors(state.level.scissors, step);
 
+  const hurtbox = playerHitbox();
   for (const hazard of state.level.hazards) {
     if (hazard.type === "spikes" && hazard.h <= 4) continue;
-    if (overlaps(player, hazard)) kill();
+    if (overlaps(hurtbox, hazardHitbox(hazard))) kill(hazard.type === "pit" ? "fall" : "spike");
   }
   for (const trap of state.level.traps) {
     if (trap.block.type === "hiddenSaw" && !trap.armed) continue;
-    if ((trap.block.type === "falling" || trap.block.type === "hiddenSaw") && overlaps(player, trap.block)) kill();
+    if ((trap.block.type === "falling" || trap.block.type === "hiddenSaw") && overlaps(hurtbox, trapHitbox(trap.block))) kill();
   }
-  if (player.y > H + 120) kill();
-  if (overlaps(player, state.level.door)) completeLevel();
+  if (state.level.scissors && overlaps(hurtbox, scissorsHitbox(state.level.scissors))) kill("cut");
+  if (player.y > H + 120) kill("fall");
+  if (overlaps(hurtbox, state.level.door)) completeLevel();
 
   state.cameraX = clamp(player.x - W * 0.38, 0, state.level.width - W);
   state.shake = Math.max(0, state.shake - dt * 0.05);
   state.flash = Math.max(0, state.flash - dt * 0.08);
+  updateParticles(step);
+  player.drawX += (player.x - player.drawX) * Math.min(1, 0.34 * step);
+  player.drawY += (player.y - player.drawY) * Math.min(1, 0.34 * step);
   player.frame += (Math.abs(player.vx) * 0.08 + (player.grounded ? 0 : 0.04)) * step;
 }
 
@@ -480,21 +565,36 @@ function updateTrap(trap, now, step) {
   }
 }
 
-function updateHazard(hazard, now) {
+function updateHazard(hazard, now, step) {
   if (!hazard.cycling) return;
-  const position = (now + hazard.offset) % hazard.period;
-  const safe = hazard.period * 0.34;
-  const grow = hazard.period * 0.2;
-  const high = hazard.period * 0.26;
-  let t = 0;
+  const hurtbox = playerHitbox();
+  const center = hurtbox.x + hurtbox.w / 2;
+  const overTrap = center > hazard.x + 5 && center < hazard.x + hazard.w - 5 && hurtbox.y + hurtbox.h <= hazard.bottom + 10;
 
-  if (position < safe) t = 0;
-  else if (position < safe + grow) t = (position - safe) / grow;
-  else if (position < safe + grow + high) t = 1;
-  else t = 1 - (position - safe - grow - high) / (hazard.period - safe - grow - high);
+  if (!hazard.triggeredAt && now > (hazard.cooldownUntil || 0) && overTrap) {
+    hazard.triggeredAt = now;
+    hazard.h = Math.max(hazard.h, hazard.maxH * 0.55);
+    spawnParticles(hazard.x + hazard.w / 2, hazard.bottom - 6, "#ff3864", 12, 1.4);
+    state.shake = Math.max(state.shake, 5);
+    playTone(150, 0.035);
+  }
 
-  const eased = t * t * (3 - 2 * t);
-  hazard.h = Math.round(hazard.minH + (hazard.maxH - hazard.minH) * eased);
+  if (hazard.triggeredAt) {
+    const elapsed = now - hazard.triggeredAt;
+    if (elapsed < 150) {
+      hazard.h = Math.min(hazard.maxH, hazard.h + hazard.maxH * 0.28 * step);
+    } else if (elapsed < 620) {
+      hazard.h = hazard.maxH;
+    } else if (elapsed < 1080) {
+      hazard.h = Math.max(0, hazard.h - hazard.maxH * 0.08 * step);
+    } else {
+      hazard.h = 0;
+      hazard.triggeredAt = 0;
+      hazard.cooldownUntil = now + hazard.period * 0.35;
+    }
+  } else {
+    hazard.h = Math.max(0, hazard.h - hazard.maxH * 0.045 * step);
+  }
   hazard.y = hazard.bottom - hazard.h;
 }
 
@@ -527,8 +627,8 @@ function updateBomb(bomb, now, step) {
     if (bomb.countdownMs <= 0) explodeBomb(bomb, now, "chase");
   }
 
-  if (bomb.state !== "fakeout" && overlaps(player, bomb)) {
-    kill();
+  if (bomb.state !== "fakeout" && overlaps(playerHitbox(), bombHitbox(bomb))) {
+    kill("blast");
     return;
   }
 }
@@ -543,7 +643,7 @@ function explodeBomb(bomb, now, nextState) {
   state.shake = 18;
   playTone(55, 0.18);
   if (distance < bomb.blastRadius) {
-    kill();
+    kill("blast");
     state.flash = 22;
     state.shake = 18;
     return;
@@ -555,6 +655,61 @@ function explodeBomb(bomb, now, nextState) {
     bomb.x = clamp(player.x - 220, 0, state.level.width - bomb.w);
     bomb.y = 394;
   }
+}
+
+function updateScissors(scissors, step) {
+  const moving = Math.abs(player.vx) > 0.35 || inputDown("ArrowLeft") || inputDown("ArrowRight") || inputDown("KeyA") || inputDown("KeyD");
+  if (!scissors.active && moving) {
+    scissors.active = true;
+    scissors.startedX = player.x;
+    playTone(420, 0.05);
+  }
+  if (!scissors.active) return;
+
+  const targetX = player.x + player.w / 2 - scissors.w * 0.42;
+  const direction = Math.sign(targetX - scissors.x) || 1;
+  scissors.x += direction * scissors.speed * step;
+  const targetY = clamp(player.y - 96, 76, 334);
+  scissors.y += (targetY - scissors.y) * Math.min(1, 0.025 * step);
+  scissors.frame = (scissors.frame || 0) + 0.18 * step;
+}
+
+function spawnParticles(x, y, color, amount, power = 1) {
+  for (let i = 0; i < amount; i += 1) {
+    state.particles.push({
+      x,
+      y,
+      vx: (Math.random() - 0.5) * 4 * power,
+      vy: (Math.random() - 0.75) * 4.2 * power,
+      life: 22 + Math.random() * 20,
+      maxLife: 42,
+      size: 2 + Math.random() * 4,
+      color,
+    });
+  }
+  if (state.particles.length > 180) state.particles.splice(0, state.particles.length - 180);
+}
+
+function spawnDeathFx(reason) {
+  const cx = player.x + player.w / 2;
+  const cy = player.y + player.h / 2;
+  const color = reason === "cut" ? "#e7edf2" : reason === "fall" ? "#8ea2b1" : "#ff3864";
+  spawnParticles(cx, cy, color, reason === "cut" ? 34 : 24, reason === "cut" ? 2.2 : 1.7);
+  if (reason === "cut") {
+    spawnParticles(cx - 4, cy, "#ff3864", 12, 1.4);
+    state.flash = 20;
+    state.shake = 20;
+  }
+}
+
+function updateParticles(step) {
+  for (const particle of state.particles) {
+    particle.x += particle.vx * step;
+    particle.y += particle.vy * step;
+    particle.vy += 0.18 * step;
+    particle.life -= step;
+  }
+  state.particles = state.particles.filter((particle) => particle.life > 0);
 }
 
 function move(dx, dy) {
@@ -586,6 +741,42 @@ function activeSolids() {
   return state.level.solids.concat(trapSolids);
 }
 
+function insetBox(box, xInset, yInset, bottomInset = yInset) {
+  return {
+    x: box.x + xInset,
+    y: box.y + yInset,
+    w: Math.max(0, box.w - xInset * 2),
+    h: Math.max(0, box.h - yInset - bottomInset),
+  };
+}
+
+function playerHitbox() {
+  return insetBox(player, 4, 2, 1);
+}
+
+function hazardHitbox(hazard) {
+  if (hazard.type === "pit") return insetBox(hazard, 8, 8, 0);
+  if (hazard.type === "spikes") return insetBox(hazard, 7, Math.max(0, hazard.h * 0.12), 2);
+  if (hazard.type === "saw" || hazard.type === "hiddenSaw") return insetBox(hazard, 5, 5);
+  return insetBox(hazard, 4, 4);
+}
+
+function trapHitbox(block) {
+  if (block.type === "falling") {
+    return { x: block.x + 20, y: block.y + 16, w: Math.max(0, block.w - 38), h: Math.max(0, block.h - 26) };
+  }
+  return hazardHitbox(block);
+}
+
+function bombHitbox(bomb) {
+  return insetBox(bomb, 8, 6, 4);
+}
+
+function scissorsHitbox(scissors) {
+  if (!scissors.active) return { x: -9999, y: -9999, w: 0, h: 0 };
+  return { x: scissors.x + 16, y: scissors.y + 19, w: scissors.w - 32, h: scissors.h - 38 };
+}
+
 function overlaps(a, b) {
   return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 }
@@ -602,6 +793,10 @@ function draw(now) {
   setHudVisible(state.mode === "game" || state.mode === "paused");
   touchControlsEl.style.visibility = state.mode === "game" ? "visible" : "hidden";
   ctx.clearRect(0, 0, W, H);
+  if (state.mode === "loading") {
+    drawLoading(now);
+    return;
+  }
   if (state.mode === "menu" || state.mode === "closed") {
     drawMenu(now);
     return;
@@ -620,10 +815,45 @@ function draw(now) {
   drawDoor(state.level.door);
   drawCheckpoints();
   if (state.level.bomb) drawBomb(state.level.bomb);
+  if (state.level.scissors) drawScissors(state.level.scissors, now);
   drawPlayer(now);
+  drawParticles();
   drawStartHint(now);
   ctx.restore();
   drawOverlay();
+}
+
+function drawLoading(now) {
+  const elapsed = now - state.loadingStarted;
+  const progress = clamp(elapsed / 3000, 0, 1);
+  ctx.fillStyle = "#05080c";
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = "#091923";
+  ctx.fillRect(0, 0, W, H);
+  for (let i = 0; i < 24; i += 1) {
+    const y = 70 + i * 18;
+    const x = ((now * 0.018 + i * 73) % (W + 180)) - 100;
+    ctx.fillStyle = i % 2 ? "#102c39" : "#0c2330";
+    ctx.fillRect(x, y, 96, 6);
+  }
+
+  const pulse = 0.88 + Math.sin(now * 0.004) * 0.04;
+  const logoW = 620 * pulse;
+  const logoH = 134 * pulse;
+  ctx.globalAlpha = Math.min(1, progress * 2.4) * Math.min(1, (1 - progress) * 3.2);
+  if (logoImage.complete && logoImage.naturalWidth) {
+    ctx.drawImage(logoImage, W / 2 - logoW / 2, H / 2 - logoH / 2 - 18, logoW, logoH);
+  } else {
+    ctx.fillStyle = "#e7edf2";
+    ctx.font = "700 34px Courier New";
+    ctx.textAlign = "center";
+    ctx.fillText("SILVER FEATHER STUDIO", W / 2, H / 2);
+  }
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = "#1b3442";
+  ctx.fillRect(W / 2 - 170, 380, 340, 8);
+  ctx.fillStyle = "#e7edf2";
+  ctx.fillRect(W / 2 - 170, 380, 340 * progress, 8);
 }
 
 function drawMenu(now) {
@@ -645,7 +875,7 @@ function drawMenu(now) {
   ctx.fillText("CYCLELIFE", W / 2, 182);
   ctx.fillStyle = "#ffd166";
   ctx.font = "18px Courier New";
-  ctx.fillText("3 fases. 1 vida. O cenario nao e seu amigo.", W / 2, 220);
+  ctx.fillText("4 fases. 1 vida. O cenario nao e seu amigo.", W / 2, 220);
 
   for (const button of menuButtons) {
     const hover = pointInRect(pointer, button);
@@ -699,9 +929,9 @@ function drawWin() {
 }
 
 function drawBackground(now) {
-  ctx.fillStyle = state.levelIndex === 2 ? "#1a1a2f" : "#092334";
+  ctx.fillStyle = state.levelIndex === 2 ? "#1a1a2f" : state.levelIndex === 3 ? "#111928" : "#092334";
   ctx.fillRect(state.cameraX, 0, W, H);
-  ctx.fillStyle = state.levelIndex === 2 ? "#4e2448" : "#123e4f";
+  ctx.fillStyle = state.levelIndex === 2 ? "#4e2448" : state.levelIndex === 3 ? "#273a54" : "#123e4f";
   for (let x = Math.floor(state.cameraX / 96) * 96; x < state.cameraX + W + 96; x += 96) {
     ctx.fillRect(x, 104 + ((x / 96) % 3) * 18, 48, 12);
     ctx.fillRect(x + 20, 122 + ((x / 96) % 3) * 18, 34, 10);
@@ -829,20 +1059,73 @@ function drawBomb(bomb) {
   ctx.fillText(String(Math.max(1, count)), bomb.x + bomb.w / 2, bomb.y + 44);
 }
 
+function drawScissors(scissors, now) {
+  const open = 12 + Math.sin((scissors.frame || now * 0.004) * 1.8) * (scissors.active ? 12 : 5);
+  const cx = scissors.x + scissors.w / 2;
+  const cy = scissors.y + scissors.h / 2;
+  const dir = scissors.x < player.x ? 1 : -1;
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.scale(dir, 1);
+  ctx.fillStyle = scissors.active ? "#e7edf2" : "#9fb7c6";
+  ctx.fillRect(-12, -6, 104, 10);
+  ctx.fillRect(-12, 6, 104, 10);
+  ctx.fillStyle = "#c0ccd6";
+  ctx.fillRect(10, -open, 92, 10);
+  ctx.fillRect(10, open, 92, 10);
+  ctx.fillStyle = "#f5f8fb";
+  ctx.fillRect(82, -open - 4, 26, 18);
+  ctx.fillRect(82, open - 4, 26, 18);
+  ctx.fillStyle = "#334759";
+  ctx.fillRect(-48, -26, 34, 24);
+  ctx.fillRect(-48, 8, 34, 24);
+  ctx.fillStyle = "#111820";
+  ctx.fillRect(-39, -19, 16, 10);
+  ctx.fillRect(-39, 15, 16, 10);
+  ctx.fillStyle = "#ffd166";
+  ctx.fillRect(-10, -10, 14, 14);
+  ctx.fillStyle = "#ff3864";
+  if (scissors.active) ctx.fillRect(96, -2, 10, 8);
+  ctx.restore();
+
+  if (!scissors.active) {
+    ctx.fillStyle = "rgba(231,237,242,0.42)";
+    ctx.fillRect(scissors.x + 16, scissors.y + scissors.h + 12, scissors.w - 32, 3);
+  }
+}
+
 function drawPlayer(now) {
   const blink = player.deadUntil > now && Math.floor(now / 60) % 2 === 0;
   if (blink) return;
+  const px = player.drawX || player.x;
+  const py = player.drawY || player.y;
   const bob = player.grounded ? Math.sin(player.frame) * 2 : 0;
+  const squash = player.grounded ? Math.min(2, Math.abs(player.vx) * 0.18) : -Math.min(2, Math.abs(player.vy) * 0.06);
+  ctx.fillStyle = "rgba(0,0,0,0.26)";
+  ctx.fillRect(Math.round(px - 2), Math.round(player.y + player.h + 4), player.w + 4, 4);
   ctx.fillStyle = "#e7edf2";
-  ctx.fillRect(Math.round(player.x), Math.round(player.y + bob), player.w, player.h);
+  ctx.fillRect(Math.round(px), Math.round(py + bob - squash), player.w, player.h + squash);
   ctx.fillStyle = "#2e6f95";
-  ctx.fillRect(Math.round(player.x + 4), Math.round(player.y + 7 + bob), 14, 8);
+  ctx.fillRect(Math.round(px + 4), Math.round(py + 7 + bob - squash), 14, 8);
+  ctx.fillStyle = "#ff3864";
+  ctx.fillRect(Math.round(px - player.facing * 4 + 8), Math.round(py + 11 + bob), 8, 5);
   ctx.fillStyle = "#05080c";
-  ctx.fillRect(player.facing > 0 ? player.x + 15 : player.x + 4, player.y + 6 + bob, 4, 4);
+  ctx.fillRect(player.facing > 0 ? px + 15 : px + 4, py + 6 + bob - squash, 4, 4);
   ctx.fillStyle = "#ffd166";
   const leg = Math.floor(player.frame) % 2 === 0 ? 3 : -1;
-  ctx.fillRect(player.x + 3, player.y + player.h - 2 + bob, 7, 4 + leg);
-  ctx.fillRect(player.x + 13, player.y + player.h - 2 + bob, 7, 4 - leg);
+  ctx.fillRect(px + 3, py + player.h - 2 + bob, 7, 4 + leg);
+  ctx.fillRect(px + 13, py + player.h - 2 + bob, 7, 4 - leg);
+}
+
+function drawParticles() {
+  for (const particle of state.particles) {
+    const alpha = clamp(particle.life / particle.maxLife, 0, 1);
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = particle.color;
+    ctx.fillRect(Math.round(particle.x), Math.round(particle.y), Math.max(1, particle.size), Math.max(1, particle.size));
+  }
+  ctx.globalAlpha = 1;
 }
 
 function drawStartHint(now) {
