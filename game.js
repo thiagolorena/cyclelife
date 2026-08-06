@@ -263,9 +263,9 @@ function makeLevels() {
         rect(360, 496, 2820, 80, "pit"),
       ],
       checkpoints: [
-        rect(1344, 228, 28, 50, "cp", { label: "Air 1" }),
-        rect(2228, 320, 28, 50, "cp", { label: "Air 2" }),
-        rect(3228, 408, 28, 50, "cp", { label: "Last Step" }),
+        platformCheckpoint("mp-3", 42, "Air 1"),
+        platformCheckpoint("mp-5", 42, "Air 2"),
+        platformCheckpoint("mp-7", 42, "Last Step"),
       ],
       traps: [
         cloudTrap("patience-cloud-a", 940, 1018, 104, 132, 66, 70),
@@ -336,6 +336,14 @@ function movingPlatform(id, x, y, w, h, minX, maxX, speed, direction = 1) {
     dx: 0,
     dy: 0,
   };
+}
+
+function platformCheckpoint(platformId, offsetX, label) {
+  return rect(0, 0, 28, 50, "cp", {
+    label,
+    platformId,
+    offsetX,
+  });
 }
 
 function cloneRect(item) {
@@ -447,6 +455,7 @@ function jumpToLevel(index) {
 function loadLevel(index) {
   state.levelIndex = index;
   state.level = cloneLevel(levelDefinitions[index]);
+  updateCheckpointAnchors();
   state.triggered.clear();
   state.cameraX = 0;
   state.shake = 0;
@@ -456,7 +465,8 @@ function loadLevel(index) {
 }
 
 function reset(toCheckpoint = true) {
-  const spawn = toCheckpoint ? player.checkpoint : state.level.spawn;
+  updateCheckpointAnchors();
+  const spawn = toCheckpoint ? resolveCheckpointSpawn(player.checkpoint) : state.level.spawn;
   player.x = spawn.x;
   player.y = spawn.y;
   player.drawX = spawn.x;
@@ -514,6 +524,17 @@ function reset(toCheckpoint = true) {
     });
   }
   statusEl.textContent = `${state.level.name} - Checkpoint: ${spawn.label}`;
+}
+
+function resolveCheckpointSpawn(spawn) {
+  if (!spawn.platformId) return spawn;
+  const platform = state.level.movingPlatforms.find((item) => item.id === spawn.platformId);
+  if (!platform) return spawn;
+  return {
+    ...spawn,
+    x: platform.x + spawn.offsetX + 5,
+    y: platform.y - player.h - 2,
+  };
 }
 
 function kill(reason = "death") {
@@ -646,6 +667,7 @@ function update(dt, now) {
   }
 
   updateMovingPlatforms(step);
+  updateCheckpointAnchors();
   player.vy = Math.min(player.vy + GRAVITY * step, 15);
   move(player.vx * step, 0);
   move(0, player.vy * step);
@@ -662,7 +684,9 @@ function update(dt, now) {
       state.shake = 18;
       continue;
     }
-    player.checkpoint = { x: cp.x + 5, y: cp.y - player.h, label: cp.label };
+    player.checkpoint = cp.platformId
+      ? { platformId: cp.platformId, offsetX: cp.offsetX, label: cp.label }
+      : { x: cp.x + 5, y: cp.y - player.h, label: cp.label };
     statusEl.textContent = `${state.level.name} - Checkpoint: ${cp.label}`;
   }
 
@@ -783,6 +807,17 @@ function updateMovingPlatforms(step) {
       player.x += platform.dx;
       player.y += platform.dy;
     }
+  }
+}
+
+function updateCheckpointAnchors() {
+  if (!state.level?.movingPlatforms) return;
+  for (const cp of state.level.checkpoints) {
+    if (!cp.platformId) continue;
+    const platform = state.level.movingPlatforms.find((item) => item.id === cp.platformId);
+    if (!platform) continue;
+    cp.x = platform.x + cp.offsetX;
+    cp.y = platform.y - cp.h;
   }
 }
 

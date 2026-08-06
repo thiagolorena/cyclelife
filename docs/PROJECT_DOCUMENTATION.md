@@ -222,7 +222,8 @@ Comportamento:
 - Durante o respawn, as plataformas continuam no fluxo atual da fase.
 - As plataformas carregam o jogador enquanto ele esta em cima delas.
 - As linhas visuais que indicavam o alcance de cada plataforma foram removidas.
-- Existem checkpoints suspensos no trajeto para reduzir repeticao apos mortes.
+- Existem checkpoints presos a plataformas moveis no trajeto para reduzir repeticao apos mortes.
+- Esses checkpoints acompanham a plataforma atual e usam a posicao dela no respawn, evitando o jogador voltar no ar sem plataforma embaixo.
 - O visual usa a primeira linha verde do sprite `platforms.png`.
 - Existe tambem um checkpoint seguro perto da plataforma final.
 
@@ -405,7 +406,8 @@ Como o projeto e estatico, "build" significa:
 - `1f1c532`: plataformas moveis da fase 5 agora iniciam em sentidos alternados para abrir janelas reais de pulo.
 - `75635d9`: plataformas moveis da fase 5 com velocidades randomicas por carregamento e sem reset de fluxo apos morte.
 - `8f7587f`: faixa de velocidade das plataformas moveis ampliada para deixar plataformas rapidas claramente perceptiveis, mantendo sorteio apenas no load do nivel.
-- Versao atual: linhas-guia das plataformas moveis removidas e checkpoints suspensos adicionados na fase 5.
+- `633276d`: linhas-guia das plataformas moveis removidas e checkpoints suspensos adicionados na fase 5.
+- Versao atual: checkpoints da fase 5 presos as plataformas moveis para respawn seguro sobre a plataforma atual.
 
 ## Proximos caminhos sugeridos
 
