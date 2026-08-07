@@ -1,6 +1,6 @@
 # Cyclelife - Documentacao do Projeto
 
-Ultima atualizacao: 2026-08-06
+Ultima atualizacao: 2026-08-07
 
 ## Regra de trabalho daqui em diante
 
@@ -381,6 +381,26 @@ Como o projeto e estatico, "build" significa:
 6. Fazer push para `thiagolorena/cyclelife`.
 7. Informar o link local jogavel e os detalhes da build.
 
+## Build itch.io
+
+Para itch.io, usar o pacote:
+
+`C:\Users\Lorena\Documents\Codex\2026-08-05\que\outputs\cyclelife-itch-html5.zip`
+
+Formato do pacote:
+
+- `index.html` na raiz do zip.
+- `style.css` na raiz do zip.
+- `game.js` na raiz do zip.
+- Pasta `assets/` na raiz do zip.
+- Sem `.git`, docs ou arquivos extras.
+
+Configuracao recomendada no itch.io:
+
+- Kind of project: HTML.
+- Upload: `cyclelife-itch-html5.zip`.
+- Marcar a opcao para o arquivo ser jogado no navegador.
+
 ## Historico de commits principais
 
 - `e0d23a2`: prototipo inicial jogavel.
@@ -407,7 +427,8 @@ Como o projeto e estatico, "build" significa:
 - `75635d9`: plataformas moveis da fase 5 com velocidades randomicas por carregamento e sem reset de fluxo apos morte.
 - `8f7587f`: faixa de velocidade das plataformas moveis ampliada para deixar plataformas rapidas claramente perceptiveis, mantendo sorteio apenas no load do nivel.
 - `633276d`: linhas-guia das plataformas moveis removidas e checkpoints suspensos adicionados na fase 5.
-- Versao atual: checkpoints da fase 5 presos as plataformas moveis para respawn seguro sobre a plataforma atual.
+- `641d414`: checkpoints da fase 5 presos as plataformas moveis para respawn seguro sobre a plataforma atual.
+- Versao atual: build HTML5 para itch.io gerada em `outputs/cyclelife-itch-html5.zip`.
 
 ## Proximos caminhos sugeridos
 
